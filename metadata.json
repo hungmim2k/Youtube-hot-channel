@@ -1,0 +1,5 @@
+{
+  "name": "YouTube Hot Channels Finder",
+  "description": "An advanced tool to analyze YouTube channel keywords and discover potential hot channels based on various performance metrics. The interface is a futuristic, dark-themed dashboard inspired by HUD designs.",
+  "requestFramePermissions": []
+}

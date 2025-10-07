@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF--8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YouTube Hot Channels Finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              'mono': ['Roboto Mono', 'monospace'],
+            },
+            colors: {
+              'hud-bg': '#0a1014',
+              'hud-bg-secondary': '#101820',
+              'hud-border': '#274358',
+              'hud-text': '#c3d8e8',
+              'hud-text-secondary': '#7b95a8',
+              'hud-accent': '#00e0e0',
+              'hud-accent-secondary': '#00a0a0',
+              'hud-green': '#32ff7e',
+              'hud-red': '#ff4d4d',
+            },
+            boxShadow: {
+              'hud': '0 0 15px rgba(0, 224, 224, 0.3)',
+              'hud-inner': 'inset 0 0 10px rgba(0, 224, 224, 0.2)',
+            }
+          },
+        },
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-hud-bg font-mono">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
