@@ -18,6 +18,14 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      optimizeDeps: {
+        exclude: ['react-i18next', 'i18next', 'i18next-browser-languagedetector']
+      },
+      build: {
+        rollupOptions: {
+          external: ['react-i18next', 'i18next', 'i18next-browser-languagedetector']
+        }
       }
     };
 });

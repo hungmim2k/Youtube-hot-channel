@@ -1,0 +1,130 @@
+{
+  "app": {
+    "title": "YT FINDER",
+    "footer": "YT Hot Channels Finder | Concept UI for demonstration purposes."
+  },
+  "tabs": {
+    "finder": "Hot Channels Finder",
+    "trending": "Trending",
+    "analyzer": "Channel Keywords Analyzer",
+    "settings": "API Settings"
+  },
+  "finder": {
+    "title": "Search Filters",
+    "keywords": "Keywords",
+    "keywordsPlaceholder": "tech, gaming, review",
+    "subscribers": "Subscribers",
+    "minSubsPlaceholder": "Min (e.g., 10k)",
+    "maxSubsPlaceholder": "Max (e.g., 1M)",
+    "channelAge": "Channel Age (days)",
+    "minAgePlaceholder": "Min (e.g., 90)",
+    "maxAgePlaceholder": "Max (e.g., 365)",
+    "country": "Country",
+    "findButton": "Find Channels",
+    "searchingButton": "Searching...",
+    "foundChannels": "Found Channels",
+    "enterKeywords": "Enter keywords to begin.",
+    "readyToSearch": "Ready to search. Enter keywords and click 'Find Channels'.",
+    "addApiKey": "Please add a YouTube API key in the API Settings tab to begin.",
+    "noChannels": "Search complete. No channels found for",
+    "loadingCache": "Loaded cached results from",
+    "usingCache": "Using cached results from",
+    "searchComplete": "Search complete. Displaying",
+    "of": "of",
+    "foundChannelsText": "found channels.",
+    "tableHeaders": {
+      "number": "STT",
+      "channel": "Channel",
+      "country": "Country",
+      "subs": "Subs",
+      "videos": "Videos",
+      "age": "Age (d)",
+      "avgViews": "Avg Views",
+      "open": "Open"
+    }
+  },
+  "trending": {
+    "title": "Trending Analysis",
+    "trendingVideos": "Trending Videos",
+    "trendingChannels": "Trending Channels",
+    "loading": "Loading...",
+    "noData": "No trending data for Unknown country. Select a valid country.",
+    "foundVideos": "Found",
+    "fetchingDetails": "videos. Fetching channel details...",
+    "analysisComplete": "Analysis complete for",
+    "tableHeaders": {
+      "videoTitle": "Video Title",
+      "views": "Views",
+      "likes": "Likes",
+      "comments": "Comments",
+      "published": "Published",
+      "channel": "Channel",
+      "subs": "Subs",
+      "totalViews": "Total Views",
+      "videos": "Videos",
+      "age": "Age (d)"
+    }
+  },
+  "analyzer": {
+    "title": "Analysis Options",
+    "channelUrl": "Channel URL, ID, or @handle",
+    "channelUrlPlaceholder": "@mkbhd, /c/Google, etc.",
+    "analyzeButton": "Analyze Channel Keywords",
+    "analyzingButton": "Analyzing...",
+    "extractedKeywords": "Extracted Keywords",
+    "results": "Results:",
+    "keywords": "keywords",
+    "copyAll": "Copy All",
+    "noKeywords": "No keywords specified by the channel owner.",
+    "resultsWillAppear": "Results will appear here after analysis.",
+    "infoText": "This tool fetches the official \"Channel Keywords\" from the channel's branding settings using the YouTube API."
+  },
+  "apiSettings": {
+    "title": "API Key Management",
+    "apiKeys": "YouTube Data API v3 Keys (one per line)",
+    "apiKeysPlaceholder": "Enter your API keys here...",
+    "saveButton": "Save & Validate Keys",
+    "validatingButton": "Validating...",
+    "keyStatus": "Key Status",
+    "noKeys": "No keys entered.",
+    "apiKeysStatus": "API Keys Status",
+    "resetAllQuotas": "Reset All Quotas",
+    "quota": "Quota:",
+    "reset": "Reset",
+    "validationComplete": "Validation complete.",
+    "ofKeys": "of",
+    "keysAreValid": "key(s) are valid.",
+    "validationError": "An error occurred during validation.",
+    "quotaReset": "Quota reset for key:",
+    "allQuotaReset": "All quota usage reset.",
+    "infoText": "Your API keys are stored locally in your browser. Get keys from the Google Cloud Console."
+  },
+  "optimization": {
+    "title": "Quota Optimization Settings",
+    "infoText": "Adjust these settings to control quota usage. Higher values provide more comprehensive results but use more quota. Lower values save quota but may return fewer results.",
+    "hotChannelsSettings": "Hot Channels Finder Settings",
+    "searchDepth": "Search Depth (1-5)",
+    "searchDepthInfo": "(Higher = more results, more quota)",
+    "channelSearchDepth": "Channel Search Depth (1-3)",
+    "channelSearchDepthInfo": "(Higher = more channels, more quota)",
+    "relatedChannelDepth": "Related Channel Discovery Depth (0-2)",
+    "relatedChannelDepthInfo": "(0 = disabled, higher = more related channels)",
+    "otherSettings": "Other Settings",
+    "trendingPages": "Trending Pages (1-5)",
+    "trendingPagesInfo": "(Higher = more trending videos, more quota)",
+    "cacheDuration": "Cache Duration (hours)",
+    "cacheDurationInfo": "(Higher = longer cache, fewer API calls)",
+    "resetButton": "Reset to Default Values"
+  },
+  "quotaDisplay": {
+    "apiQuota": "API Quota:",
+    "used": "used"
+  },
+  "errors": {
+    "enterKeywords": "Please enter search keywords.",
+    "apiKeyNotSet": "API Key is not set. Please add a key in the API Settings tab.",
+    "enterChannelUrl": "Please enter a YouTube channel URL, ID, or @handle.",
+    "noKeywordsFound": "Analysis complete, but no keywords were found for this channel.",
+    "analysisError": "An error occurred during analysis."
+  }
+}

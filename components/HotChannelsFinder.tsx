@@ -5,7 +5,9 @@ import { countries } from '../constants';
 import type { Channel } from '../types';
 import * as youtubeService from '../services/youtubeService';
 import { useApiKeys } from '../contexts/ApiKeyContext';
+import { useOptimization } from '../contexts/OptimizationContext';
 import { ArrowDownIcon, ArrowUpIcon, ExternalLinkIcon } from './icons/Icons';
+import { useTranslation } from '../shims';
 
 type SortKey = 'subscribers' | 'videos' | 'age' | 'avgViews';
 type SortDirection = 'asc' | 'desc';
@@ -54,16 +56,15 @@ const TableHeader: React.FC<{
 );
 
 
-const SEARCH_DEPTH = 5; // How many pages of search results to fetch (e.g., 5 pages * 50 results/page). Increased to get more results.
-
 export const HotChannelsFinder: React.FC = () => {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState('Enter keywords to begin.');
+  const [status, setStatus] = useState(t('finder.enterKeywords'));
   const [channels, setChannels] = useState<Channel[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>('subscribers');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  
+
   // Filter states
   const [keywords, setKeywords] = useState('tech review');
   const [minSubs, setMinSubs] = useState('');
@@ -74,25 +75,70 @@ export const HotChannelsFinder: React.FC = () => {
 
   const { activeKey, getNextKey } = useApiKeys();
   const { markKeyExhausted } = useApiKeys() as any;
+  const { settings } = useOptimization();
 
-  // localStorage key for caching last search
-  const CACHE_KEY = 'hotchannels_last_search_v1';
+  // Get optimization settings
+  const SEARCH_DEPTH = settings.searchDepth;
+  const CHANNEL_SEARCH_DEPTH = settings.channelSearchDepth;
+  const RELATED_SEARCH_DEPTH = settings.relatedSearchDepth;
+
+  // Enhanced caching system for search results
+  const CACHE_PREFIX = 'hotchannels_search_v2_';
+  const CACHE_DURATION_HOURS = settings.cacheDurationHours;
+
+  // Generate a cache key based on search parameters
+  const getCacheKey = (searchParams: {
+    keywords: string,
+    countries: string[],
+    minSubs?: string,
+    maxSubs?: string,
+    minAge?: string,
+    maxAge?: string
+  }) => {
+    // Create a deterministic string from the search parameters
+    const countryKey = searchParams.countries.length > 0 ? searchParams.countries.sort().join(',') : 'global';
+    return `${CACHE_PREFIX}${searchParams.keywords.toLowerCase().trim()}_${countryKey}`;
+  };
+
+  // Check if cache is still valid
+  const isCacheValid = (timestamp: string) => {
+    const cacheTime = new Date(timestamp).getTime();
+    const now = new Date().getTime();
+    const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+    return hoursDiff < CACHE_DURATION_HOURS;
+  };
 
   // Load cached search results on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.channels && Array.isArray(parsed.channels)) {
-          setChannels(parsed.channels);
-          setKeywords(parsed.keywords || '');
-          setMinSubs(parsed.minSubs || '');
-          setMaxSubs(parsed.maxSubs || '');
-          setMinAge(parsed.minAge || '');
-          setMaxAge(parsed.maxAge || '');
-          setSelectedCountries(parsed.selectedCountries || []);
-          setStatus(parsed.status || 'Loaded previous results.');
+      // Try to load the last search parameters
+      const lastSearch = localStorage.getItem(`${CACHE_PREFIX}last_search`);
+      if (lastSearch) {
+        const parsed = JSON.parse(lastSearch);
+        setKeywords(parsed.keywords || '');
+        setMinSubs(parsed.minSubs || '');
+        setMaxSubs(parsed.maxSubs || '');
+        setMinAge(parsed.minAge || '');
+        setMaxAge(parsed.maxAge || '');
+        setSelectedCountries(parsed.selectedCountries || []);
+
+        // Try to load cached results for these parameters
+        const cacheKey = getCacheKey({
+          keywords: parsed.keywords,
+          countries: parsed.selectedCountries || [],
+          minSubs: parsed.minSubs,
+          maxSubs: parsed.maxSubs,
+          minAge: parsed.minAge,
+          maxAge: parsed.maxAge
+        });
+
+        const cachedData = localStorage.getItem(cacheKey);
+        if (cachedData) {
+          const cacheResult = JSON.parse(cachedData);
+          if (cacheResult?.channels && Array.isArray(cacheResult.channels) && isCacheValid(cacheResult.timestamp)) {
+            setChannels(cacheResult.channels);
+            setStatus(`${t('finder.loadingCache')} ${new Date(cacheResult.timestamp).toLocaleString()}`);
+          }
         }
       }
     } catch (e) {
@@ -102,11 +148,11 @@ export const HotChannelsFinder: React.FC = () => {
 
     useEffect(() => {
     if (!activeKey) {
-        setStatus("Please add a YouTube API key in the API Settings tab to begin.");
+        setStatus(t('finder.addApiKey'));
     } else {
-        setStatus("Ready to search. Enter keywords and click 'Find Channels'.");
+        setStatus(t('finder.readyToSearch'));
     }
-  }, [activeKey]);
+  }, [activeKey, t]);
 
   const handleCountryChange = (countryCode: string, isChecked: boolean) => {
     setSelectedCountries(prev => 
@@ -116,18 +162,42 @@ export const HotChannelsFinder: React.FC = () => {
 
   const handleSearch = useCallback(async () => {
     if (!keywords) {
-        setError("Please enter search keywords.");
+        setError(t('errors.enterKeywords'));
         return;
     }
     if (!activeKey) {
-        setError("API Key is not set. Please add a key in the API Settings tab.");
+        setError(t('errors.apiKeyNotSet'));
         return;
+    }
+
+    // Check if we have valid cached results for these exact search parameters
+    const cacheKey = getCacheKey({
+      keywords,
+      countries: selectedCountries,
+      minSubs,
+      maxSubs,
+      minAge,
+      maxAge
+    });
+
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      if (cachedData) {
+        const cacheResult = JSON.parse(cachedData);
+        if (cacheResult?.channels && Array.isArray(cacheResult.channels) && isCacheValid(cacheResult.timestamp)) {
+          setChannels(cacheResult.channels);
+          setStatus(`${t('finder.usingCache')} ${new Date(cacheResult.timestamp).toLocaleString()}`);
+          return; // Skip the API calls if we have valid cached results
+        }
+      }
+    } catch (e) {
+      // If there's any error reading cache, proceed with the search
     }
 
     setIsLoading(true);
     setError(null);
     setChannels([]);
-    
+
     try {
     let allChannelIds = new Set<string>();
 
@@ -168,9 +238,10 @@ export const HotChannelsFinder: React.FC = () => {
     }
 
     // 2) Also search for channels directly (type=channel) using the same keywords to uncover channels missed by video search
+    // Optimized: Use CHANNEL_SEARCH_DEPTH to limit quota usage
     for (const regionCode of searchRegions) {
       let nextPageToken: string | undefined = undefined;
-      for (let i = 0; i < Math.min(2, SEARCH_DEPTH); i++) { // limit pages for channel search to control quota
+      for (let i = 0; i < CHANNEL_SEARCH_DEPTH; i++) {
         setStatus(`Searching channels in ${regionCode || 'Global'} (page ${i + 1})...`);
         let keyToUse = activeKey || getNextKey();
         if(!keyToUse) throw new Error("No valid API key available.");
@@ -224,51 +295,48 @@ export const HotChannelsFinder: React.FC = () => {
       }
 
       // Try to expand results by doing limited related-channel discovery to find channels related to the top seeds
+      // Optimized: More efficient related channel discovery to save quota
       try {
-        // pick top N seeds from the initial channelDetails (by subscribers)
-        const seedLimit = 3;
-        const seeds = (channelDetails || []).sort((a,b) => b.subscribers - a.subscribers).slice(0, seedLimit);
-        // For each seed, derive 1-2 small queries (title fragments or keywords) and run a small channel search
-        for (const seed of seeds) {
-          const titleParts = seed.name.split(/\s+/).slice(0,3).join(' ');
-          const queries = [titleParts];
-          if (seed.keywords && seed.keywords.length) {
-            queries.push(seed.keywords.slice(0,2).join(' '));
-          }
+        // Skip related channel discovery if relatedSearchDepth is set to 0
+        if (RELATED_SEARCH_DEPTH > 0) {
+          // Check if we already have a good number of channels before doing related discovery
+          if (channelDetails.length < 20) { // Only do related discovery if we have few results
+            // pick top N seeds from the initial channelDetails (by subscribers)
+            const seedLimit = RELATED_SEARCH_DEPTH === 1 ? 2 : 3; // Use more seeds if depth is higher
+            const seeds = (channelDetails || []).sort((a,b) => b.subscribers - a.subscribers).slice(0, seedLimit);
 
-          for (const q of queries.slice(0,2)) {
-            // limited pages and quota-aware
-            let pageToken: string | undefined = undefined;
-            for (let p=0; p < 2; p++) {
-              let keyToUse2 = activeKey || getNextKey();
-              if (!keyToUse2) break;
-              try {
-                const chSearch = await youtubeService.searchChannelsByKeyword(keyToUse2, q, pageToken, selectedCountries[0]);
-                const ids = (chSearch.results || []).map((it: any) => it.id?.channelId).filter(Boolean);
-                ids.forEach((id: string) => allChannelIds.add(id));
-                if (!chSearch.nextPageToken) break;
-                pageToken = chSearch.nextPageToken;
-              } catch (err: any) {
-                if (err?.quota && markKeyExhausted) {
-                  markKeyExhausted(keyToUse2);
-                  const alt = getNextKey();
-                  if (alt && alt !== keyToUse2) {
-                    keyToUse2 = alt;
-                    const chSearch = await youtubeService.searchChannelsByKeyword(keyToUse2, q, pageToken, selectedCountries[0]);
-                    const ids = (chSearch.results || []).map((it: any) => it.id?.channelId).filter(Boolean);
-                    ids.forEach((id: string) => allChannelIds.add(id));
-                    if (!chSearch.nextPageToken) break;
-                    pageToken = chSearch.nextPageToken;
-                  } else {
-                    break;
-                  }
-                } else {
-                  // other error - stop related searches
+            // For each seed, use only the most relevant query to find related channels
+            for (const seed of seeds) {
+              // Prioritize keywords if available, otherwise use title fragments
+              let query = '';
+              if (seed.keywords && seed.keywords.length) {
+                query = seed.keywords.slice(0,2).join(' ');
+              } else {
+                query = seed.name.split(/\s+/).slice(0,3).join(' ');
+              }
+
+              if (query) {
+                // Use only one page per query to save quota
+                let keyToUse2 = activeKey || getNextKey();
+                if (!keyToUse2) break;
+                try {
+                  setStatus(`Finding related channels for ${seed.name.substring(0, 20)}...`);
+                  const chSearch = await youtubeService.searchChannelsByKeyword(keyToUse2, query, undefined, selectedCountries[0]);
+                  const ids = (chSearch.results || []).map((it: any) => it.id?.channelId).filter(Boolean);
+                  ids.forEach((id: string) => allChannelIds.add(id));
+                } catch (err: any) {
+                  if (err?.quota && markKeyExhausted) {
+                    markKeyExhausted(keyToUse2);
+                    // Don't retry with another key to save quota - we already have main results
+                  } 
+                  // Continue with main results even if related search fails
                   break;
                 }
               }
             }
           }
+        } else {
+          setStatus("Related channel discovery is disabled in optimization settings.");
         }
       } catch (e) {
         // swallow related-search errors to avoid failing the whole search; we already have initial results
@@ -287,29 +355,46 @@ export const HotChannelsFinder: React.FC = () => {
         const countryOk = selectedCountries.length === 0 || selectedCountries.includes(channel.country.code);
         return subOk && ageOk && countryOk;
       });
-            
-      setChannels(filteredChannels);
-            setStatus(`Search complete. Displaying ${filteredChannels.length} of ${uniqueChannelIds.length} found channels.`);
 
-            // persist the search result and current filters so switching tabs keeps the data
+      setChannels(filteredChannels);
+            setStatus(`${t('finder.searchComplete')} ${filteredChannels.length} ${t('finder.of')} ${uniqueChannelIds.length} ${t('finder.foundChannelsText')}`);
+
+            // Save search results to cache using the enhanced caching system
             try {
-              const payload = {
-                channels: filteredChannels,
+              // Save the search parameters
+              const searchParams = {
                 keywords,
                 minSubs,
                 maxSubs,
                 minAge,
                 maxAge,
                 selectedCountries,
-                status: `Search complete. Displaying ${filteredChannels.length} of ${uniqueChannelIds.length} found channels.`,
                 timestamp: new Date().toISOString(),
               };
-              localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+              localStorage.setItem(`${CACHE_PREFIX}last_search`, JSON.stringify(searchParams));
+
+              // Save the search results with the specific cache key
+              const cacheKey = getCacheKey({
+                keywords,
+                countries: selectedCountries,
+                minSubs,
+                maxSubs,
+                minAge,
+                maxAge
+              });
+
+              const cachePayload = {
+                channels: filteredChannels,
+                timestamp: new Date().toISOString(),
+                totalFound: uniqueChannelIds.length
+              };
+
+              localStorage.setItem(cacheKey, JSON.stringify(cachePayload));
             } catch (e) {
               // ignore storage errors
             }
         } else {
-             setStatus(`Search complete. No channels found for "${keywords}".`);
+             setStatus(`${t('finder.noChannels')} "${keywords}".`);
         }
 
     } catch (err) {
@@ -341,28 +426,28 @@ export const HotChannelsFinder: React.FC = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <Panel title="Search Filters" className="lg:col-span-1">
+      <Panel title={t('finder.title')} className="lg:col-span-1">
         <div className="space-y-4 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
             <div>
-              <label className="block text-sm font-medium text-hud-text-secondary mb-2">Keywords</label>
-              <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder="tech, gaming, review" className="w-full bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
+              <label className="block text-sm font-medium text-hud-text-secondary mb-2">{t('finder.keywords')}</label>
+              <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)} placeholder={t('finder.keywordsPlaceholder')} className="w-full bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
             </div>
              <div>
-              <label className="block text-sm font-medium text-hud-text-secondary mb-2">Subscribers</label>
+              <label className="block text-sm font-medium text-hud-text-secondary mb-2">{t('finder.subscribers')}</label>
               <div className="flex gap-2">
-                <input type="text" value={minSubs} onChange={e => setMinSubs(e.target.value)} placeholder="Min (e.g., 10k)" className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
-                <input type="text" value={maxSubs} onChange={e => setMaxSubs(e.target.value)} placeholder="Max (e.g., 1M)" className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
+                <input type="text" value={minSubs} onChange={e => setMinSubs(e.target.value)} placeholder={t('finder.minSubsPlaceholder')} className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
+                <input type="text" value={maxSubs} onChange={e => setMaxSubs(e.target.value)} placeholder={t('finder.maxSubsPlaceholder')} className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-hud-text-secondary mb-2">Channel Age (days)</label>
+              <label className="block text-sm font-medium text-hud-text-secondary mb-2">{t('finder.channelAge')}</label>
               <div className="flex gap-2">
-                <input type="text" value={minAge} onChange={e => setMinAge(e.target.value)} placeholder="Min (e.g., 90)" className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
-                <input type="text" value={maxAge} onChange={e => setMaxAge(e.target.value)} placeholder="Max (e.g., 365)" className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
+                <input type="text" value={minAge} onChange={e => setMinAge(e.target.value)} placeholder={t('finder.minAgePlaceholder')} className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
+                <input type="text" value={maxAge} onChange={e => setMaxAge(e.target.value)} placeholder={t('finder.maxAgePlaceholder')} className="w-1/2 bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-2 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-hud-text-secondary mb-2">Country</label>
+              <label className="block text-sm font-medium text-hud-text-secondary mb-2">{t('finder.country')}</label>
               <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-hud-bg-secondary rounded-md">
                 {countries.map(c => <Checkbox key={c.code} id={c.code} label={`${c.flag} ${c.name}`} onChange={(e) => handleCountryChange(c.code, e.target.checked)} />)}
               </div>
@@ -372,12 +457,12 @@ export const HotChannelsFinder: React.FC = () => {
                 disabled={isLoading}
                 className="w-full bg-hud-accent hover:bg-hud-accent-secondary text-hud-bg font-bold py-2 px-4 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Searching...' : 'Find Channels'}
+                {isLoading ? t('finder.searchingButton') : t('finder.findButton')}
             </button>
             {error && <p className="text-hud-red text-xs text-center mt-2">{error}</p>}
         </div>
       </Panel>
-  <Panel title={`Found Channels (${channels.length})`} className="lg:col-span-3">
+  <Panel title={`${t('finder.foundChannels')} (${channels.length})`} className="lg:col-span-3">
         <div className="overflow-x-auto max-h-[calc(100vh-250px)]">
           {isLoading ? (
             <div className="flex flex-col justify-center items-center h-64">
@@ -388,14 +473,14 @@ export const HotChannelsFinder: React.FC = () => {
             <table className="min-w-full divide-y divide-hud-border">
               <thead className="bg-hud-bg-secondary sticky top-0">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">STT</th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">Channel</th>
-                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">Country</th>
-                  <TableHeader title="Subs" sortKey="subscribers" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
-                  <TableHeader title="Videos" sortKey="videos" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
-                  <TableHeader title="Age (d)" sortKey="age" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
-                  <TableHeader title="Avg Views" sortKey="avgViews" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
-                  <th scope="col" className="relative px-4 py-3"><span className="sr-only">Open</span></th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">{t('finder.tableHeaders.number')}</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">{t('finder.tableHeaders.channel')}</th>
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-bold text-hud-text-secondary uppercase tracking-wider">{t('finder.tableHeaders.country')}</th>
+                  <TableHeader title={t('finder.tableHeaders.subs')} sortKey="subscribers" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
+                  <TableHeader title={t('finder.tableHeaders.videos')} sortKey="videos" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
+                  <TableHeader title={t('finder.tableHeaders.age')} sortKey="age" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
+                  <TableHeader title={t('finder.tableHeaders.avgViews')} sortKey="avgViews" currentSort={sortKey} currentDirection={sortDirection} onSort={handleSort} />
+                  <th scope="col" className="relative px-4 py-3"><span className="sr-only">{t('finder.tableHeaders.open')}</span></th>
                 </tr>
               </thead>
               <tbody className="bg-hud-bg divide-y divide-hud-border">

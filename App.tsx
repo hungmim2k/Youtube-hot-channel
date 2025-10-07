@@ -1,18 +1,45 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChannelKeywordsAnalyzer } from './components/ChannelKeywordsAnalyzer';
 import { HotChannelsFinder } from './components/HotChannelsFinder';
 import { HudHeader } from './components/HudHeader';
 import { Tab, Tabs } from './components/Tabs';
 import { AnalyticsIcon, SearchIcon, SettingsIcon, TrendingIcon } from './components/icons/Icons';
-import { ApiKeyProvider } from './contexts/ApiKeyContext';
+import { ApiKeyProvider, useApiKeys } from './contexts/ApiKeyContext';
+import { OptimizationProvider } from './contexts/OptimizationContext';
 import { ApiSettings } from './components/ApiSettings';
 import { Trending } from './components/Trending';
+import { setQuotaTracker } from './services/youtubeService';
+import { useTranslation } from './shims';
 
 type ActiveTab = 'finder' | 'trending' | 'analyzer' | 'settings';
 
 const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('finder');
+  const [, forceUpdate] = useState({});
+  const { incrementQuotaUsage } = useApiKeys();
+  const { t } = useTranslation();
+
+  // Initialize the quota tracker
+  useEffect(() => {
+    if (incrementQuotaUsage) {
+      setQuotaTracker(incrementQuotaUsage);
+    }
+  }, [incrementQuotaUsage]);
+
+  // Force re-render when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      // Force re-render
+      forceUpdate({});
+    };
+
+    window.addEventListener('i18nextLanguageChanged', handleLanguageChange);
+
+    return () => {
+      window.removeEventListener('i18nextLanguageChanged', handleLanguageChange);
+    };
+  }, []);
 
   return (
     <div 
@@ -30,28 +57,28 @@ const AppContent: React.FC = () => {
             onClick={() => setActiveTab('finder')}
           >
             <SearchIcon className="w-5 h-5 mr-2" />
-            Hot Channels Finder
+            {t('tabs.finder')}
           </Tab>
            <Tab 
             isActive={activeTab === 'trending'} 
             onClick={() => setActiveTab('trending')}
           >
             <TrendingIcon className="w-5 h-5 mr-2" />
-            Trending
+            {t('tabs.trending')}
           </Tab>
           <Tab 
             isActive={activeTab === 'analyzer'} 
             onClick={() => setActiveTab('analyzer')}
           >
             <AnalyticsIcon className="w-5 h-5 mr-2" />
-            Channel Keywords Analyzer
+            {t('tabs.analyzer')}
           </Tab>
            <Tab 
             isActive={activeTab === 'settings'} 
             onClick={() => setActiveTab('settings')}
           >
             <SettingsIcon className="w-5 h-5 mr-2" />
-            API Settings
+            {t('tabs.settings')}
           </Tab>
         </Tabs>
 
@@ -63,7 +90,7 @@ const AppContent: React.FC = () => {
         </div>
       </main>
       <footer className="text-center p-4 text-hud-text-secondary text-xs">
-        <p>YT Hot Channels Finder | Concept UI for demonstration purposes.</p>
+        <p>{t('app.footer')}</p>
       </footer>
     </div>
   );
@@ -73,7 +100,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ApiKeyProvider>
-      <AppContent />
+      <OptimizationProvider>
+        <AppContent />
+      </OptimizationProvider>
     </ApiKeyProvider>
   );
 };

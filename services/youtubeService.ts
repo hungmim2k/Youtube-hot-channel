@@ -1,6 +1,20 @@
 import type { Channel, YouTubeVideo, YouTubeSearchResult, YouTubeChannel } from '../types';
 import { countries } from '../constants';
 
+// Function to get the ApiKeyContext from outside React components
+let incrementQuotaUsageCallback: ((key: string, operation: string, count?: number) => void) | null = null;
+
+export const setQuotaTracker = (callback: (key: string, operation: string, count?: number) => void) => {
+  incrementQuotaUsageCallback = callback;
+};
+
+// Helper to track quota usage
+const trackQuotaUsage = (apiKey: string, operation: string, count: number = 1) => {
+  if (incrementQuotaUsageCallback) {
+    incrementQuotaUsageCallback(apiKey, operation, count);
+  }
+};
+
 const API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 
 // --- API HELPER FUNCTIONS ---
@@ -44,7 +58,10 @@ async function resolveChannelIdentifier(apiKey: string, identifier: string): Pro
     url.searchParams.set('q', identifier);
     url.searchParams.set('type', 'channel');
     url.searchParams.set('maxResults', '1');
-    
+
+    // Track quota usage - search operation costs 100 units
+    trackQuotaUsage(apiKey, 'search', 1);
+
     const response = await fetch(url.toString());
     const data = await handleApiResponse(response);
 
@@ -78,7 +95,10 @@ export const searchByKeyword = async (apiKey: string, query: string, pageToken?:
             url.searchParams.set('regionCode', regionCode);
         }
     }
-    
+
+    // Track quota usage - search operation costs 100 units
+    trackQuotaUsage(apiKey, 'search', 1);
+
     const response = await fetch(url.toString());
     const data = await handleApiResponse(response);
 
@@ -106,6 +126,9 @@ export const searchChannelsByKeyword = async (apiKey: string, query: string, pag
         url.searchParams.set('regionCode', regionCode);
     }
 
+    // Track quota usage - search operation costs 100 units
+    trackQuotaUsage(apiKey, 'search', 1);
+
     const response = await fetch(url.toString());
     const data = await handleApiResponse(response);
 
@@ -127,12 +150,15 @@ export const getChannelDetails = async (apiKey: string, channelIds: string[]): P
     // The API allows up to 50 IDs per request.
     for (let i = 0; i < channelIds.length; i += 50) {
         const batch = channelIds.slice(i, i + 50);
-        
+
         const url = new URL(`${API_BASE_URL}/channels`);
         url.searchParams.set('key', apiKey);
         url.searchParams.set('part', 'snippet,statistics,brandingSettings');
         url.searchParams.set('id', batch.join(','));
-        
+
+        // Track quota usage - list operation costs 1 unit per resource, 3 parts = 3 units per channel
+        trackQuotaUsage(apiKey, 'list', batch.length * 3);
+
         const response = await fetch(url.toString());
         const data = await handleApiResponse(response);
         const rawChannels: YouTubeChannel[] = data.items || [];
@@ -142,7 +168,7 @@ export const getChannelDetails = async (apiKey: string, channelIds: string[]): P
             const subscribers = parseInt(raw.statistics.subscriberCount, 10) || 0;
             const videos = parseInt(raw.statistics.videoCount, 10) || 0;
             const ageInMs = Date.now() - new Date(raw.snippet.publishedAt).getTime();
-            
+
             return {
                 id: raw.id,
                 name: raw.snippet.title,
@@ -180,6 +206,10 @@ export const getTrendingVideos = async (apiKey: string, regionCode?: string, pag
         url.searchParams.set('pageToken', pageToken);
     }
 
+    // Track quota usage - videos.list operation costs 1 unit per part, 2 parts = 2 units per call
+    // This is more efficient than tracking per video since it's a single API call
+    trackQuotaUsage(apiKey, 'list', 2);
+
     const response = await fetch(url.toString());
     const data = await handleApiResponse(response);
 
@@ -196,10 +226,13 @@ export const getChannelKeywords = async (apiKey: string, channelIdentifier: stri
     url.searchParams.set('key', apiKey);
     url.searchParams.set('part', 'brandingSettings');
     url.searchParams.set('id', channelId);
-    
+
+    // Track quota usage - list operation costs 1 unit per resource, 1 part = 1 unit per channel
+    trackQuotaUsage(apiKey, 'list', 1);
+
     const response = await fetch(url.toString());
     const data = await handleApiResponse(response);
-    
+
     if (data.items && data.items.length > 0) {
         const keywordsString = data.items[0].brandingSettings?.channel?.keywords;
         if (keywordsString) {

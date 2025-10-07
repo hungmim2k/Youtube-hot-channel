@@ -2,10 +2,12 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Panel } from './Panel';
 import { countries } from '../constants';
 import { useApiKeys } from '../contexts/ApiKeyContext';
+import { useOptimization } from '../contexts/OptimizationContext';
 import { YouTubeVideo, Channel } from '../types';
 import * as youtubeService from '../services/youtubeService';
 import { ExternalLinkIcon, ArrowUpIcon, ArrowDownIcon } from './icons/Icons';
 import { Tab, Tabs } from './Tabs';
+import { useTranslation } from '../shims';
 
 type VideoSortKey = 'viewCount' | 'likeCount' | 'commentCount' | 'publishedAt';
 type ChannelSortKey = 'subscribers' | 'videos' | 'age' | 'avgViews';
@@ -47,15 +49,17 @@ const TableHeader: React.FC<{
 );
 
 export const Trending: React.FC = () => {
+    const { t } = useTranslation();
     const { activeKey, getNextKey } = useApiKeys();
     const { markKeyExhausted } = useApiKeys() as any;
+    const { settings } = useOptimization();
     const [isLoading, setIsLoading] = useState(false);
     const [videos, setVideos] = useState<YouTubeVideo[]>([]);
     const [channels, setChannels] = useState<Channel[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [selectedCountry, setSelectedCountry] = useState('US');
     const [activeTab, setActiveTab] = useState<'videos' | 'channels'>('videos');
-    const [status, setStatus] = useState('Loading...');
+    const [status, setStatus] = useState(t('trending.loading'));
 
     // Sorting states
     const [videoSortKey, setVideoSortKey] = useState<VideoSortKey>('viewCount');
@@ -65,7 +69,7 @@ export const Trending: React.FC = () => {
 
     const fetchTrendingData = useCallback(async () => {
         if (!activeKey) {
-            setError("API Key is not set. Please add a key in the API Settings tab.");
+            setError(t('errors.apiKeyNotSet'));
             return;
         }
         setIsLoading(true);
@@ -84,7 +88,7 @@ export const Trending: React.FC = () => {
                     if (parsed && Array.isArray(parsed.videos)) {
                         setVideos(parsed.videos);
                         if (Array.isArray(parsed.channels)) setChannels(parsed.channels);
-                        setStatus(`Loaded trending data from cache for ${selectedCountry} (${parsed.videos.length} videos).`);
+                        setStatus(`${t('trending.loading')} ${selectedCountry} (${parsed.videos.length} videos).`);
                         setIsLoading(false);
                         return;
                     }
@@ -96,11 +100,11 @@ export const Trending: React.FC = () => {
             let allVideos: YouTubeVideo[] = [];
             let nextPageToken: string | undefined = undefined;
             let page = 0;
-            const MAX_PAGES = 5; // Limit to prevent excessive API calls, API usually stops after 4 pages (200 videos)
+            const MAX_PAGES = settings.trendingMaxPages; // Use configurable setting
 
             do {
                 page++;
-                setStatus(`Fetching page ${page}...`);
+                setStatus(`${t('trending.loading')}`);
                 let keyToUse = activeKey || getNextKey();
                 if (!keyToUse) throw new Error("No valid API key available.");
                 let videoResults;
@@ -123,10 +127,10 @@ export const Trending: React.FC = () => {
                 allVideos = [...allVideos, ...videoResults.videos];
                 nextPageToken = videoResults.nextPageToken;
             } while (nextPageToken && page < MAX_PAGES);
-            
+
             setVideos(allVideos);
-            setStatus(`Found ${allVideos.length} videos. Fetching channel details...`);
-            
+            setStatus(`${t('trending.foundVideos')} ${allVideos.length} ${t('trending.fetchingDetails')}`);
+
             const channelIds = Array.from(new Set(allVideos.map(v => v.snippet.channelId)));
             if (channelIds.length > 0) {
                  let keyToUse = activeKey || getNextKey();
@@ -158,7 +162,7 @@ export const Trending: React.FC = () => {
                     // ignore storage errors
                 }
             }
-            setStatus(`Analysis complete for ${selectedCountry}.`);
+            setStatus(`${t('trending.analysisComplete')} ${selectedCountry}.`);
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
             setError(errorMessage);
@@ -177,10 +181,10 @@ export const Trending: React.FC = () => {
         if (selectedCountry === '??') {
             setVideos([]);
             setChannels([]);
-            setStatus('No trending data for Unknown country. Select a valid country.');
+            setStatus(t('trending.noData'));
         }
-    }, [selectedCountry]);
-    
+    }, [selectedCountry, t]);
+
     // Memoized sorted data
     const sortedVideos = useMemo(() => {
         return [...videos].sort((a, b) => {
@@ -207,7 +211,7 @@ export const Trending: React.FC = () => {
             return 0;
         });
     }, [channels, channelSortKey, channelSortDir]);
-    
+
     const handleVideoSort = (key: VideoSortKey) => {
         setVideoSortDir(prev => videoSortKey === key && prev === 'desc' ? 'asc' : 'desc');
         setVideoSortKey(key);
@@ -220,11 +224,11 @@ export const Trending: React.FC = () => {
 
 
     return (
-        <Panel title="Trending Analysis" className="lg:col-span-3">
+        <Panel title={t('trending.title')} className="lg:col-span-3">
              <div className="flex justify-between items-center mb-4">
                 <Tabs>
-                    <Tab isActive={activeTab === 'videos'} onClick={() => setActiveTab('videos')}>Trending Videos ({videos.length})</Tab>
-                    <Tab isActive={activeTab === 'channels'} onClick={() => setActiveTab('channels')}>Trending Channels ({channels.length})</Tab>
+                    <Tab isActive={activeTab === 'videos'} onClick={() => setActiveTab('videos')}>{t('trending.trendingVideos')} ({videos.length})</Tab>
+                    <Tab isActive={activeTab === 'channels'} onClick={() => setActiveTab('channels')}>{t('trending.trendingChannels')} ({channels.length})</Tab>
                 </Tabs>
                 <select
                     value={selectedCountry}
@@ -247,11 +251,11 @@ export const Trending: React.FC = () => {
                      <table className="min-w-full divide-y divide-hud-border">
                         <thead className="bg-hud-bg-secondary sticky top-0">
                            <tr>
-                                <TableHeader title="Video Title" sortKey="title" currentSort="" currentDirection="desc" onSort={() => {}} className="cursor-default" />
-                                <TableHeader title="Views" sortKey="viewCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
-                                <TableHeader title="Likes" sortKey="likeCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
-                                <TableHeader title="Comments" sortKey="commentCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
-                                <TableHeader title="Published" sortKey="publishedAt" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
+                                <TableHeader title={t('trending.tableHeaders.videoTitle')} sortKey="title" currentSort="" currentDirection="desc" onSort={() => {}} className="cursor-default" />
+                                <TableHeader title={t('trending.tableHeaders.views')} sortKey="viewCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
+                                <TableHeader title={t('trending.tableHeaders.likes')} sortKey="likeCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
+                                <TableHeader title={t('trending.tableHeaders.comments')} sortKey="commentCount" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
+                                <TableHeader title={t('trending.tableHeaders.published')} sortKey="publishedAt" currentSort={videoSortKey} currentDirection={videoSortDir} onSort={handleVideoSort} />
                            </tr>
                         </thead>
                         <tbody className="bg-hud-bg divide-y divide-hud-border">
@@ -278,11 +282,11 @@ export const Trending: React.FC = () => {
                      <table className="min-w-full divide-y divide-hud-border">
                         <thead className="bg-hud-bg-secondary sticky top-0">
                            <tr>
-                                <TableHeader title="Channel" sortKey="name" currentSort="" currentDirection="desc" onSort={() => {}} className="cursor-default" />
-                                <TableHeader title="Subs" sortKey="subscribers" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
-                                <TableHeader title="Total Views" sortKey="avgViews" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
-                                <TableHeader title="Videos" sortKey="videos" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
-                                <TableHeader title="Age (d)" sortKey="age" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
+                                <TableHeader title={t('trending.tableHeaders.channel')} sortKey="name" currentSort="" currentDirection="desc" onSort={() => {}} className="cursor-default" />
+                                <TableHeader title={t('trending.tableHeaders.subs')} sortKey="subscribers" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
+                                <TableHeader title={t('trending.tableHeaders.totalViews')} sortKey="avgViews" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
+                                <TableHeader title={t('trending.tableHeaders.videos')} sortKey="videos" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
+                                <TableHeader title={t('trending.tableHeaders.age')} sortKey="age" currentSort={channelSortKey} currentDirection={channelSortDir} onSort={handleChannelSort} />
                            </tr>
                         </thead>
                         <tbody className="bg-hud-bg divide-y divide-hud-border">

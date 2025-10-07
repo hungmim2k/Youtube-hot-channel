@@ -1,0 +1,130 @@
+{
+  "app": {
+    "title": "TÌM KÊNH YT",
+    "footer": "Công cụ tìm kênh YouTube hot | Giao diện khái niệm cho mục đích trình diễn."
+  },
+  "tabs": {
+    "finder": "Tìm kênh hot",
+    "trending": "Xu hướng",
+    "analyzer": "Phân tích từ khóa kênh",
+    "settings": "Cài đặt API"
+  },
+  "finder": {
+    "title": "Bộ lọc tìm kiếm",
+    "keywords": "Từ khóa",
+    "keywordsPlaceholder": "công nghệ, game, đánh giá",
+    "subscribers": "Người đăng ký",
+    "minSubsPlaceholder": "Tối thiểu (vd: 10k)",
+    "maxSubsPlaceholder": "Tối đa (vd: 1M)",
+    "channelAge": "Tuổi kênh (ngày)",
+    "minAgePlaceholder": "Tối thiểu (vd: 90)",
+    "maxAgePlaceholder": "Tối đa (vd: 365)",
+    "country": "Quốc gia",
+    "findButton": "Tìm kênh",
+    "searchingButton": "Đang tìm...",
+    "foundChannels": "Kênh đã tìm thấy",
+    "enterKeywords": "Nhập từ khóa để bắt đầu.",
+    "readyToSearch": "Sẵn sàng tìm kiếm. Nhập từ khóa và nhấp 'Tìm kênh'.",
+    "addApiKey": "Vui lòng thêm khóa API YouTube trong tab Cài đặt API để bắt đầu.",
+    "noChannels": "Tìm kiếm hoàn tất. Không tìm thấy kênh nào cho",
+    "loadingCache": "Đã tải kết quả từ bộ nhớ đệm từ",
+    "usingCache": "Sử dụng kết quả từ bộ nhớ đệm từ",
+    "searchComplete": "Tìm kiếm hoàn tất. Hiển thị",
+    "of": "trong số",
+    "foundChannelsText": "kênh đã tìm thấy.",
+    "tableHeaders": {
+      "number": "STT",
+      "channel": "Kênh",
+      "country": "Quốc gia",
+      "subs": "Đăng ký",
+      "videos": "Video",
+      "age": "Tuổi (ngày)",
+      "avgViews": "Lượt xem TB",
+      "open": "Mở"
+    }
+  },
+  "trending": {
+    "title": "Phân tích xu hướng",
+    "trendingVideos": "Video xu hướng",
+    "trendingChannels": "Kênh xu hướng",
+    "loading": "Đang tải...",
+    "noData": "Không có dữ liệu xu hướng cho quốc gia Không xác định. Chọn một quốc gia hợp lệ.",
+    "foundVideos": "Đã tìm thấy",
+    "fetchingDetails": "video. Đang lấy thông tin kênh...",
+    "analysisComplete": "Phân tích hoàn tất cho",
+    "tableHeaders": {
+      "videoTitle": "Tiêu đề video",
+      "views": "Lượt xem",
+      "likes": "Lượt thích",
+      "comments": "Bình luận",
+      "published": "Đã đăng",
+      "channel": "Kênh",
+      "subs": "Đăng ký",
+      "totalViews": "Tổng lượt xem",
+      "videos": "Video",
+      "age": "Tuổi (ngày)"
+    }
+  },
+  "analyzer": {
+    "title": "Tùy chọn phân tích",
+    "channelUrl": "URL kênh, ID, hoặc @handle",
+    "channelUrlPlaceholder": "@mkbhd, /c/Google, v.v.",
+    "analyzeButton": "Phân tích từ khóa kênh",
+    "analyzingButton": "Đang phân tích...",
+    "extractedKeywords": "Từ khóa đã trích xuất",
+    "results": "Kết quả:",
+    "keywords": "từ khóa",
+    "copyAll": "Sao chép tất cả",
+    "noKeywords": "Không có từ khóa nào được chủ kênh chỉ định.",
+    "resultsWillAppear": "Kết quả sẽ xuất hiện ở đây sau khi phân tích.",
+    "infoText": "Công cụ này lấy \"Từ khóa kênh\" chính thức từ cài đặt thương hiệu của kênh bằng API YouTube."
+  },
+  "apiSettings": {
+    "title": "Quản lý khóa API",
+    "apiKeys": "Khóa API YouTube Data v3 (mỗi dòng một khóa)",
+    "apiKeysPlaceholder": "Nhập khóa API của bạn tại đây...",
+    "saveButton": "Lưu & xác thực khóa",
+    "validatingButton": "Đang xác thực...",
+    "keyStatus": "Trạng thái khóa",
+    "noKeys": "Chưa nhập khóa nào.",
+    "apiKeysStatus": "Trạng thái khóa API",
+    "resetAllQuotas": "Đặt lại tất cả hạn ngạch",
+    "quota": "Hạn ngạch:",
+    "reset": "Đặt lại",
+    "validationComplete": "Xác thực hoàn tất.",
+    "ofKeys": "trong số",
+    "keysAreValid": "khóa hợp lệ.",
+    "validationError": "Đã xảy ra lỗi trong quá trình xác thực.",
+    "quotaReset": "Đã đặt lại hạn ngạch cho khóa:",
+    "allQuotaReset": "Đã đặt lại tất cả hạn ngạch sử dụng.",
+    "infoText": "Khóa API của bạn được lưu trữ cục bộ trong trình duyệt. Lấy khóa từ Google Cloud Console."
+  },
+  "optimization": {
+    "title": "Cài đặt tối ưu hóa hạn ngạch",
+    "infoText": "Điều chỉnh các cài đặt này để kiểm soát việc sử dụng hạn ngạch. Giá trị cao hơn cung cấp kết quả toàn diện hơn nhưng sử dụng nhiều hạn ngạch hơn. Giá trị thấp hơn tiết kiệm hạn ngạch nhưng có thể trả về ít kết quả hơn.",
+    "hotChannelsSettings": "Cài đặt tìm kênh hot",
+    "searchDepth": "Độ sâu tìm kiếm (1-5)",
+    "searchDepthInfo": "(Cao hơn = nhiều kết quả hơn, nhiều hạn ngạch hơn)",
+    "channelSearchDepth": "Độ sâu tìm kiếm kênh (1-3)",
+    "channelSearchDepthInfo": "(Cao hơn = nhiều kênh hơn, nhiều hạn ngạch hơn)",
+    "relatedChannelDepth": "Độ sâu khám phá kênh liên quan (0-2)",
+    "relatedChannelDepthInfo": "(0 = tắt, cao hơn = nhiều kênh liên quan hơn)",
+    "otherSettings": "Cài đặt khác",
+    "trendingPages": "Trang xu hướng (1-5)",
+    "trendingPagesInfo": "(Cao hơn = nhiều video xu hướng hơn, nhiều hạn ngạch hơn)",
+    "cacheDuration": "Thời lượng bộ nhớ đệm (giờ)",
+    "cacheDurationInfo": "(Cao hơn = bộ nhớ đệm lâu hơn, ít cuộc gọi API hơn)",
+    "resetButton": "Đặt lại về giá trị mặc định"
+  },
+  "quotaDisplay": {
+    "apiQuota": "Hạn ngạch API:",
+    "used": "đã dùng"
+  },
+  "errors": {
+    "enterKeywords": "Vui lòng nhập từ khóa tìm kiếm.",
+    "apiKeyNotSet": "Khóa API chưa được thiết lập. Vui lòng thêm khóa trong tab Cài đặt API.",
+    "enterChannelUrl": "Vui lòng nhập URL kênh YouTube, ID, hoặc @handle.",
+    "noKeywordsFound": "Phân tích hoàn tất, nhưng không tìm thấy từ khóa nào cho kênh này.",
+    "analysisError": "Đã xảy ra lỗi trong quá trình phân tích."
+  }
+}
