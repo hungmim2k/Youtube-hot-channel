@@ -3,6 +3,7 @@ import { Panel } from './Panel';
 import { countries } from '../constants';
 import { useApiKeys } from '../contexts/ApiKeyContext';
 import { useOptimization } from '../contexts/OptimizationContext';
+import { useAuth } from '../contexts/AuthContext';
 import { YouTubeVideo, Channel } from '../types';
 import * as youtubeService from '../services/youtubeService';
 import { ExternalLinkIcon, ArrowUpIcon, ArrowDownIcon } from './icons/Icons';
@@ -53,6 +54,7 @@ export const Trending: React.FC = () => {
     const { activeKey, getNextKey } = useApiKeys();
     const { markKeyExhausted } = useApiKeys() as any;
     const { settings } = useOptimization();
+    const { trackKeyword } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [videos, setVideos] = useState<YouTubeVideo[]>([]);
     const [channels, setChannels] = useState<Channel[]>([]);
@@ -227,12 +229,57 @@ export const Trending: React.FC = () => {
         <Panel title={t('trending.title')} className="lg:col-span-3">
              <div className="flex justify-between items-center mb-4">
                 <Tabs>
-                    <Tab isActive={activeTab === 'videos'} onClick={() => setActiveTab('videos')}>{t('trending.trendingVideos')} ({videos.length})</Tab>
-                    <Tab isActive={activeTab === 'channels'} onClick={() => setActiveTab('channels')}>{t('trending.trendingChannels')} ({channels.length})</Tab>
+                    <Tab 
+                        isActive={activeTab === 'videos'} 
+                        onClick={() => {
+                            setActiveTab('videos');
+
+                            // Track tab change
+                            try {
+                                const clientIP = window.location.hostname || '127.0.0.1';
+                                trackKeyword(`trending:tab:videos`, clientIP);
+                            } catch (err) {
+                                console.error("Error tracking tab change:", err);
+                                // Continue even if tracking fails
+                            }
+                        }}
+                    >
+                        {t('trending.trendingVideos')} ({videos.length})
+                    </Tab>
+                    <Tab 
+                        isActive={activeTab === 'channels'} 
+                        onClick={() => {
+                            setActiveTab('channels');
+
+                            // Track tab change
+                            try {
+                                const clientIP = window.location.hostname || '127.0.0.1';
+                                trackKeyword(`trending:tab:channels`, clientIP);
+                            } catch (err) {
+                                console.error("Error tracking tab change:", err);
+                                // Continue even if tracking fails
+                            }
+                        }}
+                    >
+                        {t('trending.trendingChannels')} ({channels.length})
+                    </Tab>
                 </Tabs>
                 <select
                     value={selectedCountry}
-                    onChange={(e) => setSelectedCountry(e.target.value)}
+                    onChange={(e) => {
+                        const newCountry = e.target.value;
+                        setSelectedCountry(newCountry);
+
+                        // Track the country selection
+                        try {
+                            const clientIP = window.location.hostname || '127.0.0.1';
+                            const countryName = countries.find(c => c.code === newCountry)?.name || newCountry;
+                            trackKeyword(`trending:${countryName}`, clientIP);
+                        } catch (err) {
+                            console.error("Error tracking country selection:", err);
+                            // Continue even if tracking fails
+                        }
+                    }}
                     className="bg-hud-bg-secondary border border-hud-border rounded-md px-3 py-1.5 text-hud-text focus:ring-2 focus:ring-hud-accent focus:outline-none"
                 >
                     {countries.map(c => <option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}

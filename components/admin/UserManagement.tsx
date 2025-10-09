@@ -28,13 +28,13 @@ export const UserManagement: React.FC = () => {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       const finalExpiration = expiration === 'never' ? 'never' : expirationDate;
       const apiKeysList = apiKeys.split('\n').filter(Boolean).map(key => key.trim());
-      
+
       const success = await addUser(username, password, finalExpiration, apiKeysList);
-      
+
       if (success) {
         setMessage({ text: t('admin.userAdded'), type: 'success' });
         resetForm();
@@ -50,28 +50,28 @@ export const UserManagement: React.FC = () => {
 
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isEditingUser) return;
-    
+
     try {
       const updates: Partial<Omit<UserRecord, 'username' | 'role'>> = {};
-      
+
       if (password) {
         updates.password = password;
       }
-      
+
       if (expiration === 'never') {
         updates.expiration = 'never';
       } else if (expirationDate) {
         updates.expiration = expirationDate;
       }
-      
+
       if (apiKeys) {
-        updates.apiKeys = apiKeys.split('\n').filter(Boolean).map(key => key.trim());
+        updates.api_keys = apiKeys.split('\n').filter(Boolean).map(key => key.trim());
       }
-      
+
       const success = await updateUser(isEditingUser, updates);
-      
+
       if (success) {
         setMessage({ text: t('admin.userUpdated'), type: 'success' });
         resetForm();
@@ -89,7 +89,7 @@ export const UserManagement: React.FC = () => {
     if (window.confirm(t('admin.confirmDelete'))) {
       try {
         const success = await deleteUser(username);
-        
+
         if (success) {
           setMessage({ text: t('admin.userDeleted'), type: 'success' });
         } else {
@@ -110,7 +110,7 @@ export const UserManagement: React.FC = () => {
     if (user.expiration !== 'never') {
       setExpirationDate(user.expiration);
     }
-    setApiKeys((user.apiKeys || []).join('\n'));
+    setApiKeys((user.api_keys || []).join('\n'));
   };
 
   return (
@@ -121,7 +121,7 @@ export const UserManagement: React.FC = () => {
             {message.text}
           </div>
         )}
-        
+
         <div className="flex justify-end">
           <button
             onClick={() => {
@@ -134,7 +134,7 @@ export const UserManagement: React.FC = () => {
             {t('admin.addUser')}
           </button>
         </div>
-        
+
         {isAddingUser && (
           <div className="bg-hud-bg-secondary p-4 rounded-md border border-hud-border">
             <h3 className="text-lg font-medium mb-4">{t('admin.addUser')}</h3>
@@ -151,7 +151,7 @@ export const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 bg-hud-bg border border-hud-border rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-hud-text-secondary mb-1">
                   {t('admin.password')}
@@ -164,7 +164,7 @@ export const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 bg-hud-bg border border-hud-border rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-hud-text-secondary mb-1">
                   {t('admin.expiration')}
@@ -189,7 +189,7 @@ export const UserManagement: React.FC = () => {
                     <span className="ml-2">{t('admin.setExpiration')}</span>
                   </label>
                 </div>
-                
+
                 {expiration !== 'never' && (
                   <input
                     type="date"
@@ -200,7 +200,7 @@ export const UserManagement: React.FC = () => {
                   />
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-hud-text-secondary mb-1">
                   {t('admin.apiKeys')} ({t('apiSettings.apiKeys')})
@@ -213,7 +213,7 @@ export const UserManagement: React.FC = () => {
                   placeholder={t('apiSettings.apiKeysPlaceholder')}
                 />
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -232,7 +232,7 @@ export const UserManagement: React.FC = () => {
             </form>
           </div>
         )}
-        
+
         {isEditingUser && (
           <div className="bg-hud-bg-secondary p-4 rounded-md border border-hud-border">
             <h3 className="text-lg font-medium mb-4">{t('admin.editUser')}: {isEditingUser}</h3>
@@ -248,7 +248,7 @@ export const UserManagement: React.FC = () => {
                   className="w-full px-3 py-2 bg-hud-bg border border-hud-border rounded-md"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-hud-text-secondary mb-1">
                   {t('admin.expiration')}
@@ -273,7 +273,7 @@ export const UserManagement: React.FC = () => {
                     <span className="ml-2">{t('admin.setExpiration')}</span>
                   </label>
                 </div>
-                
+
                 {expiration !== 'never' && (
                   <input
                     type="date"
@@ -284,7 +284,7 @@ export const UserManagement: React.FC = () => {
                   />
                 )}
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-hud-text-secondary mb-1">
                   {t('admin.apiKeys')} ({t('apiSettings.apiKeys')})
@@ -297,7 +297,7 @@ export const UserManagement: React.FC = () => {
                   placeholder={t('apiSettings.apiKeysPlaceholder')}
                 />
               </div>
-              
+
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
@@ -316,7 +316,7 @@ export const UserManagement: React.FC = () => {
             </form>
           </div>
         )}
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-hud-border">
             <thead className="bg-hud-bg-secondary">
@@ -356,10 +356,24 @@ export const UserManagement: React.FC = () => {
                       : new Date(user.expiration).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-hud-text-secondary">
-                    {(user.apiKeys || []).length}
+                    <div className="flex items-center">
+                      <span className="mr-2">{(user.api_keys || []).length}</span>
+                      {(user.api_keys || []).length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const keys = user.api_keys || [];
+                            alert(`${user.username}'s API Keys:\n\n${keys.join('\n')}`);
+                          }}
+                          className="text-xs bg-hud-border hover:bg-hud-accent hover:text-hud-bg px-2 py-1 rounded-sm"
+                        >
+                          {t('admin.view')}
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-hud-text-secondary">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {new Date(user.created_at || '').toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button

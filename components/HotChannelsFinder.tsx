@@ -6,6 +6,7 @@ import type { Channel } from '../types';
 import * as youtubeService from '../services/youtubeService';
 import { useApiKeys } from '../contexts/ApiKeyContext';
 import { useOptimization } from '../contexts/OptimizationContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ArrowDownIcon, ArrowUpIcon, ExternalLinkIcon } from './icons/Icons';
 import { useTranslation } from '../shims';
 
@@ -76,6 +77,7 @@ export const HotChannelsFinder: React.FC = () => {
   const { activeKey, getNextKey } = useApiKeys();
   const { markKeyExhausted } = useApiKeys() as any;
   const { settings } = useOptimization();
+  const { trackKeyword } = useAuth();
 
   // Get optimization settings
   const SEARCH_DEPTH = settings.searchDepth;
@@ -197,6 +199,16 @@ export const HotChannelsFinder: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setChannels([]);
+
+    // Track the keyword search
+    try {
+      // Get client IP address (in a real app, this would be done server-side)
+      const clientIP = window.location.hostname || '127.0.0.1';
+      await trackKeyword(keywords, clientIP);
+    } catch (e) {
+      console.error("Error tracking keyword:", e);
+      // Continue with the search even if tracking fails
+    }
 
     try {
     let allChannelIds = new Set<string>();

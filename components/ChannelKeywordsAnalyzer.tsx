@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Panel } from './Panel';
 import { CopyIcon, InfoIcon } from './icons/Icons';
 import { useApiKeys } from '../contexts/ApiKeyContext';
+import { useAuth } from '../contexts/AuthContext';
 import * as youtubeService from '../services/youtubeService';
 import { useTranslation } from '../shims';
 
@@ -12,6 +13,7 @@ export const ChannelKeywordsAnalyzer: React.FC = () => {
   const [keywords, setKeywords] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { activeKey } = useApiKeys();
+  const { trackKeyword } = useAuth();
 
   const handleAnalyze = async () => {
     const channelIdentifier = url.trim();
@@ -27,6 +29,16 @@ export const ChannelKeywordsAnalyzer: React.FC = () => {
     setError(null);
     setIsLoading(true);
     setKeywords(null);
+
+    // Track the channel URL search
+    try {
+      // Get client IP address (in a real app, this would be done server-side)
+      const clientIP = window.location.hostname || '127.0.0.1';
+      await trackKeyword(channelIdentifier, clientIP);
+    } catch (e) {
+      console.error("Error tracking channel URL:", e);
+      // Continue with the analysis even if tracking fails
+    }
 
     try {
         const result = await youtubeService.getChannelKeywords(activeKey, channelIdentifier);

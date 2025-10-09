@@ -14,11 +14,15 @@ export const KeywordTracking: React.FC = () => {
     toDate: ''
   });
 
+  // State for error message
+  const [error, setError] = useState<string | null>(null);
+
   // Apply filters and update the filtered keywords
   useEffect(() => {
     const fetchKeywords = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const activeFilters: { username?: string; fromDate?: string; toDate?: string } = {};
 
         if (filters.username) {
@@ -41,13 +45,23 @@ export const KeywordTracking: React.FC = () => {
       } catch (error) {
         console.error('Error fetching keywords:', error);
         setFilteredKeywords([]);
+
+        // Check if the error might be related to missing tables
+        if (error instanceof Error && 
+            (error.message.includes('does not exist') || 
+             error.message.includes('not found') ||
+             error.message.includes('no such table'))) {
+          setError(t('admin.databaseTablesNotFound'));
+        } else {
+          setError(t('admin.errorFetchingKeywords'));
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchKeywords();
-  }, [filters, getKeywords]);
+  }, [filters, getKeywords, t]);
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -129,12 +143,26 @@ export const KeywordTracking: React.FC = () => {
             <h3 className="text-lg font-medium">{t('admin.totalKeywords')}: {filteredKeywords.length}</h3>
           </div>
 
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-hud-red mb-2">{error}</p>
+              <p className="text-hud-text-secondary text-sm">
+                {t('admin.databaseTablesNotFound') === error && (
+                  <>
+                    {t('admin.runMigration')}
+                    <br />
+                    <code className="bg-hud-bg p-1 rounded mt-2 inline-block">npm run migrate:js</code>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
           {isLoading ? (
             <div className="text-center py-8">
               <div className="inline-block w-8 h-8 border-4 border-hud-accent border-t-transparent rounded-full animate-spin"></div>
               <p className="mt-2 text-hud-text-secondary">Loading keywords...</p>
             </div>
-          ) : filteredKeywords.length > 0 ? (
+          ) : !error && filteredKeywords.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-hud-border">
                 <thead className="bg-hud-bg">
