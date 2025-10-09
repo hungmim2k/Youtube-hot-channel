@@ -1,24 +1,38 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  getAllUsers, 
+  getUserByUsername, 
+  createUser as dbCreateUser, 
+  updateUser as dbUpdateUser, 
+  deleteUser as dbDeleteUser, 
+  authenticateUser,
+  isUserExpired as dbIsUserExpired
+} from '../database/services/userServiceSupabase';
+import {
+  trackKeyword as dbTrackKeyword,
+  getKeywordsWithFilters
+} from '../database/services/keywordServiceSupabase';
 
-type Role = 'admin' | 'user';
+// Import types from Supabase configuration
+import { Role, Expiration, UserRecord as IUser, KeywordRecord as IKeyword } from '../database/supabase';
 
-// Expiration type can be 'never' for no expiration or a date string
-type Expiration = 'never' | string;
-
+// Define simplified types for the context
 interface UserRecord {
+  id?: string;
   username: string;
   password: string;
   role: Role;
   expiration: Expiration;
-  apiKeys?: string[];
-  createdAt: string;
+  api_keys?: string[];
+  created_at?: string;
 }
 
 interface KeywordRecord {
+  id?: string;
   keyword: string;
   username: string;
   ip: string;
-  timestamp: string;
+  timestamp?: string;
 }
 
 interface AuthContextType {
@@ -28,140 +42,125 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   register: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  addUser: (username: string, password: string, expiration: Expiration, apiKeys?: string[]) => Promise<boolean>;
+  addUser: (username: string, password: string, expiration: Expiration, api_keys?: string[]) => Promise<boolean>;
   updateUser: (username: string, updates: Partial<Omit<UserRecord, 'username' | 'role'>>) => Promise<boolean>;
   deleteUser: (username: string) => Promise<boolean>;
-  trackKeyword: (keyword: string, ip: string) => void;
-  getKeywords: (filters?: { username?: string; fromDate?: string; toDate?: string }) => KeywordRecord[];
+  trackKeyword: (keyword: string, ip: string) => Promise<void>;
+  getKeywords: (filters?: { username?: string; fromDate?: string; toDate?: string }) => Promise<KeywordRecord[]>;
   isUserExpired: (user: UserRecord) => boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEFAULT_ADMIN: UserRecord = { 
-  username: 'admin', 
-  password: '0968885430', 
-  role: 'admin',
-  expiration: 'never',
-  createdAt: new Date().toISOString()
-};
-const USERS_KEY = 'yt_app_users_v1';
+// Current user session key
 const CURRENT_KEY = 'yt_app_current_user_v1';
-const KEYWORDS_KEY = 'yt_app_keywords_v1';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserRecord | null>(null);
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [keywords, setKeywords] = useState<KeywordRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load users and keywords from localStorage
+  // Load users and current user from database
   useEffect(() => {
-    try {
-      // Load users
-      const rawUsers = localStorage.getItem(USERS_KEY);
-      let loadedUsers: UserRecord[] = [];
-      if (rawUsers) loadedUsers = JSON.parse(rawUsers);
+    const initializeAuth = async () => {
+      try {
+        setIsLoading(true);
 
-      // Ensure admin account exists
-      const hasAdmin = loadedUsers.some(u => u.username === DEFAULT_ADMIN.username);
-      if (!hasAdmin) {
-        loadedUsers.unshift(DEFAULT_ADMIN);
-        localStorage.setItem(USERS_KEY, JSON.stringify(loadedUsers));
+        // Load all users from database
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+
+        // Load current user from session storage
+        const cur = localStorage.getItem(CURRENT_KEY);
+        if (cur) {
+          const userData = JSON.parse(cur);
+          const currentUser = await getUserByUsername(userData.username);
+          if (currentUser) {
+            setUser(currentUser as UserRecord);
+          } else {
+            // If user doesn't exist in DB anymore, clear local storage
+            localStorage.removeItem(CURRENT_KEY);
+          }
+        }
+
+        // Load initial keywords (empty for now, will be loaded when needed)
+        setKeywords([]);
+      } catch (e) {
+        console.error("Error loading auth data:", e);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      // Update users with missing fields if needed
-      const updatedUsers = loadedUsers.map(u => ({
-        ...u,
-        expiration: u.expiration || 'never',
-        createdAt: u.createdAt || new Date().toISOString(),
-        apiKeys: u.apiKeys || []
-      }));
-
-      setUsers(updatedUsers);
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
-
-      // Load current user
-      const cur = localStorage.getItem(CURRENT_KEY);
-      if (cur) setUser(JSON.parse(cur));
-
-      // Load keywords
-      const rawKeywords = localStorage.getItem(KEYWORDS_KEY);
-      if (rawKeywords) setKeywords(JSON.parse(rawKeywords));
-    } catch (e) {
-      console.error("Error loading auth data:", e);
-    }
+    initializeAuth();
   }, []);
-
-  // Persist users to localStorage
-  const persistUsers = (updatedUsers: UserRecord[]) => {
-    try { 
-      localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers)); 
-      setUsers(updatedUsers);
-    } catch (e) {
-      console.error("Error persisting users:", e);
-    }
-  };
-
-  // Persist keywords to localStorage
-  const persistKeywords = (updatedKeywords: KeywordRecord[]) => {
-    try { 
-      localStorage.setItem(KEYWORDS_KEY, JSON.stringify(updatedKeywords)); 
-      setKeywords(updatedKeywords);
-    } catch (e) {
-      console.error("Error persisting keywords:", e);
-    }
-  };
 
   // Check if a user's account has expired
   const isUserExpired = (user: UserRecord) => {
-    if (user.expiration === 'never') return false;
-    const expirationDate = new Date(user.expiration);
-    return expirationDate < new Date();
+    return dbIsUserExpired(user);
   };
 
   const login = async (username: string, password: string) => {
     try {
-      const found = users.find(u => u.username === username && u.password === password);
-      if (found) {
+      setIsLoading(true);
+      const authResult = await authenticateUser(username, password);
+
+      if (authResult) {
         // Check if account has expired
-        if (isUserExpired(found)) {
+        if (authResult.expired) {
           return false;
         }
 
-        setUser(found);
-        localStorage.setItem(CURRENT_KEY, JSON.stringify(found));
+        setUser(authResult as UserRecord);
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(authResult));
+
+        // Refresh users list
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+
         return true;
       }
       return false;
     } catch (e) {
       console.error("Login error:", e);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const register = async (username: string, password: string) => {
     try {
-      // admin account cannot be registered or overwritten
-      if (username === DEFAULT_ADMIN.username) return false;
-      if (users.some(u => u.username === username)) return false;
+      setIsLoading(true);
 
-      const newUser: UserRecord = { 
-        username, 
-        password, 
+      // Create user in database
+      const newUser = await dbCreateUser({
+        username,
+        password,
         role: 'user',
         expiration: 'never',
-        apiKeys: [],
-        createdAt: new Date().toISOString()
-      };
+        api_keys: []
+      });
 
-      const updatedUsers = [...users, newUser];
-      persistUsers(updatedUsers);
-      setUser(newUser);
-      localStorage.setItem(CURRENT_KEY, JSON.stringify(newUser));
-      return true;
+      if (newUser) {
+        // Update local state
+        setUser(newUser as UserRecord);
+        localStorage.setItem(CURRENT_KEY, JSON.stringify(newUser));
+
+        // Refresh users list
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+
+        return true;
+      }
+      return false;
     } catch (e) {
       console.error("Register error:", e);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -171,121 +170,147 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Add a new user (admin only)
-  const addUser = async (username: string, password: string, expiration: Expiration, apiKeys: string[] = []) => {
+  const addUser = async (username: string, password: string, expiration: Expiration, api_keys: string[] = []) => {
     try {
-      if (users.some(u => u.username === username)) return false;
+      setIsLoading(true);
 
-      const newUser: UserRecord = {
+      // Create user in database
+      const newUser = await dbCreateUser({
         username,
         password,
         role: 'user',
         expiration,
-        apiKeys,
-        createdAt: new Date().toISOString()
-      };
+        api_keys
+      });
 
-      const updatedUsers = [...users, newUser];
-      persistUsers(updatedUsers);
-      return true;
+      if (newUser) {
+        // Refresh users list
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+        return true;
+      }
+      return false;
     } catch (e) {
       console.error("Add user error:", e);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Update an existing user (admin only)
   const updateUser = async (username: string, updates: Partial<Omit<UserRecord, 'username' | 'role'>>) => {
     try {
-      // Cannot update admin account except by admin
-      if (username === DEFAULT_ADMIN.username && (!user || user.role !== 'admin')) {
-        return false;
-      }
+      setIsLoading(true);
 
-      const updatedUsers = users.map(u => {
-        if (u.username === username) {
-          return { ...u, ...updates };
+      // Update user in database
+      const updatedUser = await dbUpdateUser(username, updates);
+
+      if (updatedUser) {
+        // Refresh users list
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+
+        // If updating the current user, update the current user state and localStorage
+        if (user && user.username === username) {
+          setUser(updatedUser as UserRecord);
+          localStorage.setItem(CURRENT_KEY, JSON.stringify(updatedUser));
         }
-        return u;
-      });
 
-      persistUsers(updatedUsers);
-
-      // If updating the current user, update the current user state and localStorage
-      if (user && user.username === username) {
-        const updatedUser = { ...user, ...updates };
-        setUser(updatedUser);
-        localStorage.setItem(CURRENT_KEY, JSON.stringify(updatedUser));
+        return true;
       }
-
-      return true;
+      return false;
     } catch (e) {
       console.error("Update user error:", e);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Delete a user (admin only)
   const deleteUser = async (username: string) => {
     try {
-      // Cannot delete admin account
-      if (username === DEFAULT_ADMIN.username) {
-        return false;
-      }
+      setIsLoading(true);
 
       // Cannot delete current user
       if (user && user.username === username) {
         return false;
       }
 
-      const updatedUsers = users.filter(u => u.username !== username);
-      persistUsers(updatedUsers);
-      return true;
+      // Delete user from database
+      const result = await dbDeleteUser(username);
+
+      if (result.success) {
+        // Refresh users list
+        const dbUsers = await getAllUsers();
+        setUsers(dbUsers as UserRecord[]);
+        return true;
+      }
+      return false;
     } catch (e) {
       console.error("Delete user error:", e);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Track a keyword search
-  const trackKeyword = (keyword: string, ip: string) => {
+  const trackKeyword = async (keyword: string, ip: string) => {
     if (!user) return;
 
-    const newKeyword: KeywordRecord = {
-      keyword,
-      username: user.username,
-      ip,
-      timestamp: new Date().toISOString()
-    };
+    try {
+      // Track keyword in database
+      await dbTrackKeyword({
+        keyword,
+        username: user.username,
+        ip
+      });
 
-    const updatedKeywords = [...keywords, newKeyword];
-    persistKeywords(updatedKeywords);
+      // Refresh keywords list (optional, can be removed if performance is an issue)
+      const updatedKeywords = await getKeywords();
+      setKeywords(updatedKeywords);
+    } catch (e) {
+      console.error("Error tracking keyword:", e);
+    }
   };
 
   // Get keywords with optional filtering
-  const getKeywords = (filters?: { username?: string; fromDate?: string; toDate?: string }) => {
-    if (!filters) return keywords;
+  const getKeywords = async (filters?: { username?: string; fromDate?: string; toDate?: string }) => {
+    try {
+      setIsLoading(true);
 
-    return keywords.filter(k => {
-      let match = true;
+      // Build filter object for database query
+      const dbFilters: any = {};
 
-      if (filters.username && k.username !== filters.username) {
-        match = false;
+      if (filters) {
+        if (filters.username) {
+          dbFilters.username = filters.username;
+        }
+
+        if (filters.fromDate) {
+          dbFilters.fromDate = new Date(filters.fromDate);
+        }
+
+        if (filters.toDate) {
+          dbFilters.toDate = new Date(filters.toDate);
+        }
       }
 
-      if (filters.fromDate) {
-        const fromDate = new Date(filters.fromDate);
-        const keywordDate = new Date(k.timestamp);
-        if (keywordDate < fromDate) match = false;
-      }
+      // Get keywords from database
+      const dbKeywords = await getKeywordsWithFilters(dbFilters);
 
-      if (filters.toDate) {
-        const toDate = new Date(filters.toDate);
-        const keywordDate = new Date(k.timestamp);
-        if (keywordDate > toDate) match = false;
-      }
+      // Update state
+      setKeywords(dbKeywords as KeywordRecord[]);
 
-      return match;
-    });
+      return dbKeywords as KeywordRecord[];
+    } catch (e) {
+      console.error("Error getting keywords:", e);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -301,7 +326,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteUser, 
       trackKeyword, 
       getKeywords,
-      isUserExpired
+      isUserExpired,
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>

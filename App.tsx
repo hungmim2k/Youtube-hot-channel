@@ -13,6 +13,7 @@ import { Trending } from './components/Trending';
 import { setQuotaTracker } from './services/youtubeService';
 import { useTranslation } from './shims';
 import { LoginForm } from './components/LoginForm';
+import { AdminPanel } from './components/admin/AdminPanel';
 
 type ActiveTab = 'finder' | 'trending' | 'analyzer' | 'settings' | 'admin';
 
@@ -138,12 +139,7 @@ const AppContent: React.FC = () => {
           {activeTab === 'trending' && <Trending />}
           {activeTab === 'analyzer' && <ChannelKeywordsAnalyzer />}
           {activeTab === 'settings' && <ApiSettings />}
-          {activeTab === 'admin' && user.role === 'admin' && (
-            <div className="space-y-8">
-              <h2 className="text-2xl font-bold text-hud-text">{t('admin.adminPanel')}</h2>
-              {/* Admin panel components will go here */}
-            </div>
-          )}
+          {activeTab === 'admin' && user.role === 'admin' && <AdminPanel />}
         </div>
       </main>
       <footer className="text-center p-4 text-hud-text-secondary text-xs">
