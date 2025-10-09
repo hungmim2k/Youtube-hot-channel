@@ -6,26 +6,91 @@
 import enTranslation from './locales/en/translation.json';
 import viTranslation from './locales/vi/translation.json';
 
+// Log the imported translations to verify they're loaded correctly
+console.log('Imported translations in shims.js:');
+console.log('English translation:', enTranslation);
+console.log('Vietnamese translation:', viTranslation);
+
 // Translation resources
 const resources = {
   en: { translation: enTranslation },
   vi: { translation: viTranslation }
 };
 
+// Log the resources to verify they're structured correctly
+console.log('Translation resources in shims.js:', resources);
+
 // Helper function to get translation
 const getTranslation = (key, lng) => {
+  console.log(`Getting translation for key: "${key}" in language: "${lng}"`);
+
+  // Handle empty or invalid keys
+  if (!key || typeof key !== 'string') {
+    console.error(`Invalid key: "${key}"`);
+    return key || '';
+  }
+
+  // Check if resources exist for the language
+  if (!resources[lng]) {
+    console.error(`No resources found for language: "${lng}"`);
+    console.log('Available resources:', Object.keys(resources));
+
+    // Try fallback to English
+    if (lng !== 'en' && resources['en']) {
+      console.log('Trying fallback to English');
+      return getTranslation(key, 'en');
+    }
+
+    return key;
+  }
+
+  // Check if translation object exists
+  if (!resources[lng].translation) {
+    console.error(`No translation object found for language: "${lng}"`);
+    return key;
+  }
+
+  // Split the key into parts and navigate the translation object
   const parts = key.split('.');
   let current = resources[lng]?.translation;
 
+  console.log(`Translation object for "${lng}":`, current);
+  console.log(`Looking for key "${key}" with parts:`, parts);
+
+  // Traverse the translation object
   for (const part of parts) {
+    console.log(`Looking for part: "${part}" in current object:`, current);
+
     if (current && typeof current === 'object' && part in current) {
       current = current[part];
+      console.log(`Found part "${part}", new current:`, current);
     } else {
+      console.error(`Part "${part}" not found in current object`);
+
+      // Try to find similar keys for debugging
+      if (current && typeof current === 'object') {
+        const keys = Object.keys(current);
+        const similarKeys = keys.filter(k => k.includes(part) || part.includes(k));
+        if (similarKeys.length > 0) {
+          console.log(`Similar keys found: ${similarKeys.join(', ')}`);
+        }
+      }
+
+      // Try fallback to English if not already trying English
+      if (lng !== 'en' && resources['en']) {
+        console.log('Trying fallback to English');
+        return getTranslation(key, 'en');
+      }
+
       return key; // Return key if translation not found
     }
   }
 
-  return typeof current === 'string' ? current : key;
+  // Return the result
+  const result = typeof current === 'string' ? current : key;
+  console.log(`Final translation result for "${key}": "${result}"`);
+
+  return result;
 };
 
 // Check if we're in a browser environment
@@ -60,16 +125,58 @@ const mockI18next = {
 // Create mock reactI18next
 const mockReactI18next = {
   useTranslation: () => {
+    console.log('useTranslation hook called');
     const currentLang = getCurrentLang();
+    console.log(`Current language: "${currentLang}"`);
+
+    // Create a wrapped t function that logs each translation call
+    const t = (key) => {
+      console.log(`Translation requested for key: "${key}"`);
+
+      // Force direct access to the translation object for debugging
+      if (key && key.includes('.')) {
+        const parts = key.split('.');
+        let value = resources[currentLang]?.translation;
+
+        console.log(`Direct lookup for "${key}" in language "${currentLang}"`);
+        console.log(`Initial value:`, value);
+
+        let found = true;
+        for (const part of parts) {
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+            console.log(`Found part "${part}", value now:`, value);
+          } else {
+            console.error(`Direct lookup failed at part "${part}"`);
+            found = false;
+            break;
+          }
+        }
+
+        if (found && typeof value === 'string') {
+          console.log(`Direct lookup successful: "${value}"`);
+          return value;
+        }
+      }
+
+      // Fall back to regular getTranslation if direct lookup fails
+      const result = getTranslation(key, currentLang);
+      console.log(`Translation result for "${key}": "${result}"`);
+      return result;
+    };
+
     return {
-      t: (key) => getTranslation(key, currentLang),
+      t,
       i18n: {
         changeLanguage: (lng) => {
+          console.log(`Changing language to: "${lng}"`);
           if (isBrowser) {
             localStorage.setItem('i18nextLng', lng);
+            console.log(`Language set in localStorage: "${lng}"`);
             window.dispatchEvent(new Event('languageChanged'));
             // Force re-render by dispatching a custom event
             window.dispatchEvent(new CustomEvent('i18nextLanguageChanged', { detail: lng }));
+            console.log('Language change events dispatched');
           }
         },
         language: currentLang,

@@ -3215,7 +3215,7 @@ video {
   vite: react-babel;
 }
 
-/* Custom styles can be added here */
+/* Custom styles can be added below */
 
 @media (min-width: 640px) {
   .sm\:container {

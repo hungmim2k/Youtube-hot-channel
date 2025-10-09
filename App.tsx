@@ -21,7 +21,31 @@ const AppContent: React.FC = () => {
   const [, forceUpdate] = useState({});
   const { incrementQuotaUsage, apiKeys } = useApiKeys();
   const { user } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // Debug translations
+  useEffect(() => {
+    console.log('AppContent: Translations test');
+    console.log('Current language:', i18n?.language);
+    console.log('Translation for "login.title":', t('login.title'));
+    console.log('Translation for "app.title":', t('app.title'));
+    console.log('Translation for "tabs.finder":', t('tabs.finder'));
+
+    // Check if translations are working
+    const isWorking = 
+      t('login.title') !== 'login.title' && 
+      t('app.title') !== 'app.title' && 
+      t('tabs.finder') !== 'tabs.finder';
+
+    console.log('AppContent: Translations working:', isWorking);
+
+    if (!isWorking && i18n) {
+      // Try to force a language change
+      console.log('AppContent: Forcing language change to ensure translations are loaded...');
+      const currentLang = i18n.language || 'en';
+      i18n.changeLanguage(currentLang);
+    }
+  }, [t, i18n]);
 
   // Initialize the quota tracker
   useEffect(() => {
