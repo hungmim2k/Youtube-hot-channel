@@ -4,20 +4,23 @@ import { ChannelKeywordsAnalyzer } from './components/ChannelKeywordsAnalyzer';
 import { HotChannelsFinder } from './components/HotChannelsFinder';
 import { HudHeader } from './components/HudHeader';
 import { Tab, Tabs } from './components/Tabs';
-import { AnalyticsIcon, SearchIcon, SettingsIcon, TrendingIcon } from './components/icons/Icons';
+import { AnalyticsIcon, SearchIcon, SettingsIcon, TrendingIcon, UserIcon } from './components/icons/Icons';
 import { ApiKeyProvider, useApiKeys } from './contexts/ApiKeyContext';
 import { OptimizationProvider } from './contexts/OptimizationContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ApiSettings } from './components/ApiSettings';
 import { Trending } from './components/Trending';
 import { setQuotaTracker } from './services/youtubeService';
 import { useTranslation } from './shims';
+import { LoginForm } from './components/LoginForm';
 
-type ActiveTab = 'finder' | 'trending' | 'analyzer' | 'settings';
+type ActiveTab = 'finder' | 'trending' | 'analyzer' | 'settings' | 'admin';
 
 const AppContent: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('finder');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('settings');
   const [, forceUpdate] = useState({});
-  const { incrementQuotaUsage } = useApiKeys();
+  const { incrementQuotaUsage, apiKeys } = useApiKeys();
+  const { user } = useAuth();
   const { t } = useTranslation();
 
   // Initialize the quota tracker
@@ -26,6 +29,16 @@ const AppContent: React.FC = () => {
       setQuotaTracker(incrementQuotaUsage);
     }
   }, [incrementQuotaUsage]);
+
+  // Redirect to finder tab if API keys are already set (only on initial load)
+  const [initialLoad, setInitialLoad] = useState(true);
+
+  useEffect(() => {
+    if (apiKeys && apiKeys.length > 0 && initialLoad) {
+      setActiveTab('finder');
+      setInitialLoad(false);
+    }
+  }, [apiKeys, initialLoad]);
 
   // Force re-render when language changes
   useEffect(() => {
@@ -40,6 +53,11 @@ const AppContent: React.FC = () => {
       window.removeEventListener('i18nextLanguageChanged', handleLanguageChange);
     };
   }, []);
+
+  // Check if user is logged in
+  if (!user) {
+    return <LoginForm />;
+  }
 
   return (
     <div 
@@ -73,13 +91,22 @@ const AppContent: React.FC = () => {
             <AnalyticsIcon className="w-5 h-5 mr-2" />
             {t('tabs.analyzer')}
           </Tab>
-           <Tab 
+          <Tab 
             isActive={activeTab === 'settings'} 
             onClick={() => setActiveTab('settings')}
           >
             <SettingsIcon className="w-5 h-5 mr-2" />
             {t('tabs.settings')}
           </Tab>
+          {user.role === 'admin' && (
+            <Tab 
+              isActive={activeTab === 'admin'} 
+              onClick={() => setActiveTab('admin')}
+            >
+              <UserIcon className="w-5 h-5 mr-2" />
+              {t('tabs.admin')}
+            </Tab>
+          )}
         </Tabs>
 
         <div className="mt-6">
@@ -87,6 +114,12 @@ const AppContent: React.FC = () => {
           {activeTab === 'trending' && <Trending />}
           {activeTab === 'analyzer' && <ChannelKeywordsAnalyzer />}
           {activeTab === 'settings' && <ApiSettings />}
+          {activeTab === 'admin' && user.role === 'admin' && (
+            <div className="space-y-8">
+              <h2 className="text-2xl font-bold text-hud-text">{t('admin.adminPanel')}</h2>
+              {/* Admin panel components will go here */}
+            </div>
+          )}
         </div>
       </main>
       <footer className="text-center p-4 text-hud-text-secondary text-xs">
@@ -99,11 +132,13 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ApiKeyProvider>
-      <OptimizationProvider>
-        <AppContent />
-      </OptimizationProvider>
-    </ApiKeyProvider>
+    <AuthProvider>
+      <ApiKeyProvider>
+        <OptimizationProvider>
+          <AppContent />
+        </OptimizationProvider>
+      </ApiKeyProvider>
+    </AuthProvider>
   );
 };
 

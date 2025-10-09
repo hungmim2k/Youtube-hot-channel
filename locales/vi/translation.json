@@ -7,7 +7,8 @@
     "finder": "Tìm kênh hot",
     "trending": "Xu hướng",
     "analyzer": "Phân tích từ khóa kênh",
-    "settings": "Cài đặt API"
+    "settings": "Cài đặt API",
+    "admin": "Quản trị viên"
   },
   "finder": {
     "title": "Bộ lọc tìm kiếm",
@@ -119,6 +120,103 @@
   "quotaDisplay": {
     "apiQuota": "Hạn ngạch API:",
     "used": "đã dùng"
+  },
+  "apiGuide": {
+    "title": "Cách lấy khóa API YouTube",
+    "step1": {
+      "title": "Truy cập Google Cloud Console",
+      "instruction1": "Mở trình duyệt web và truy cập Google Cloud Console.",
+      "instruction2": "Đăng nhập bằng tài khoản Google của bạn (tạo một tài khoản nếu bạn chưa có).",
+      "instruction3": "Nếu bạn mới sử dụng Google Cloud, bạn có thể cần chấp nhận điều khoản dịch vụ.",
+      "url": "https://console.cloud.google.com/"
+    },
+    "step2": {
+      "title": "Tạo dự án mới",
+      "instruction1": "Nhấp vào menu dự án ở đầu trang.",
+      "instruction2": "Nhấp vào nút 'Dự án mới'.",
+      "instruction3": "Nhập tên cho dự án của bạn (ví dụ: 'Dự án API YouTube').",
+      "instruction4": "Nhấp vào 'Tạo' để tạo dự án mới của bạn."
+    },
+    "step3": {
+      "title": "Kích hoạt YouTube Data API v3",
+      "instruction1": "Trong thanh bên trái, nhấp vào 'APIs & Services' > 'Library'.",
+      "instruction2": "Trong thanh tìm kiếm, nhập 'YouTube Data API v3'.",
+      "instruction3": "Nhấp vào thẻ YouTube Data API v3 xuất hiện trong kết quả tìm kiếm.",
+      "instruction4": "Trên trang API, nhấp vào nút 'Enable' (Kích hoạt).",
+      "instruction5": "Đợi cho API được kích hoạt cho dự án của bạn."
+    },
+    "step4": {
+      "title": "Tạo thông tin xác thực API",
+      "instruction1": "Sau khi kích hoạt API, nhấp vào nút 'Create Credentials' (Tạo thông tin xác thực).",
+      "instruction2": "Trong biểu mẫu xuất hiện, chọn 'YouTube Data API v3' cho API và 'Web browser (JavaScript)' cho loại ứng dụng.",
+      "instruction3": "Nhấp vào 'What credentials do I need?' (Tôi cần thông tin xác thực nào?) và làm theo hướng dẫn để tạo khóa API.",
+      "note": "Khóa API mới của bạn sẽ được hiển thị. Hãy chắc chắn sao chép nó vì bạn sẽ cần nó cho ứng dụng này."
+    },
+    "step5": {
+      "title": "Thêm khóa API vào ứng dụng này",
+      "instruction1": "Sao chép khóa API mới của bạn vào clipboard.",
+      "instruction2": "Dán nó vào trường khóa API ở trên và nhấp vào 'Lưu & xác thực khóa'.",
+      "note": "Mỗi khóa API có giới hạn hạn ngạch hàng ngày là 10.000 đơn vị. Các hoạt động API khác nhau tiêu thụ lượng hạn ngạch khác nhau. Đối với hầu hết người dùng, điều này đủ cho việc sử dụng cá nhân."
+    }
+  },
+  "login": {
+    "title": "Đăng Nhập",
+    "subtitle": "Nhập thông tin đăng nhập để truy cập ứng dụng",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "loginButton": "Đăng Nhập",
+    "loggingIn": "Đang đăng nhập...",
+    "errorEmptyFields": "Vui lòng nhập cả tên đăng nhập và mật khẩu.",
+    "errorInvalidCredentials": "Tên đăng nhập hoặc mật khẩu không hợp lệ. Vui lòng thử lại.",
+    "errorGeneric": "Đã xảy ra lỗi trong quá trình đăng nhập. Vui lòng thử lại."
+  },
+  "account": {
+    "welcome": "Xin chào",
+    "expiresNever": "Không có thời hạn",
+    "expiresOn": "Hết hạn vào",
+    "expired": "Đã hết hạn",
+    "logout": "Đăng xuất"
+  },
+  "admin": {
+    "adminPanel": "Bảng quản trị",
+    "userManagement": "Quản lý người dùng",
+    "addUser": "Thêm người dùng",
+    "editUser": "Sửa người dùng",
+    "deleteUser": "Xóa người dùng",
+    "username": "Tên đăng nhập",
+    "password": "Mật khẩu",
+    "role": "Vai trò",
+    "expiration": "Thời hạn",
+    "apiKeys": "Khóa API",
+    "createdAt": "Ngày tạo",
+    "actions": "Hành động",
+    "confirmDelete": "Bạn có chắc chắn muốn xóa người dùng này không?",
+    "userAdded": "Thêm người dùng thành công",
+    "userUpdated": "Cập nhật người dùng thành công",
+    "userDeleted": "Xóa người dùng thành công",
+    "errorAddingUser": "Lỗi khi thêm người dùng",
+    "errorUpdatingUser": "Lỗi khi cập nhật người dùng",
+    "errorDeletingUser": "Lỗi khi xóa người dùng",
+    "neverExpires": "Không bao giờ hết hạn",
+    "setExpiration": "Đặt ngày hết hạn",
+    "keywordTracking": "Theo dõi từ khóa",
+    "keyword": "Từ khóa",
+    "user": "Người dùng",
+    "ip": "Địa chỉ IP",
+    "timestamp": "Thời gian",
+    "filter": "Lọc",
+    "clearFilters": "Xóa bộ lọc",
+    "fromDate": "Từ ngày",
+    "toDate": "Đến ngày",
+    "filterByUser": "Lọc theo người dùng",
+    "noKeywordsFound": "Không tìm thấy từ khóa nào",
+    "totalKeywords": "Tổng số từ khóa",
+    "cancel": "Hủy",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "saveChanges": "Lưu thay đổi",
+    "allUsers": "Tất cả người dùng",
+    "leaveBlankToKeep": "Để trống để giữ mật khẩu hiện tại"
   },
   "errors": {
     "enterKeywords": "Vui lòng nhập từ khóa tìm kiếm.",

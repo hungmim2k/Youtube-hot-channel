@@ -3,6 +3,7 @@ import { Panel } from './Panel';
 import { useApiKeys } from '../contexts/ApiKeyContext';
 import { InfoIcon, CheckCircleIcon, XCircleIcon, SettingsIcon } from './icons/Icons';
 import { OptimizationSettings } from './OptimizationSettings';
+import { YouTubeApiGuide } from './YouTubeApiGuide';
 
 type KeyStatus = {
     key: string;
@@ -150,6 +151,8 @@ export const ApiSettings: React.FC = () => {
           </div>
         </div>
       </Panel>
+
+      <YouTubeApiGuide />
 
       <OptimizationSettings />
     </div>

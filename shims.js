@@ -28,43 +28,52 @@ const getTranslation = (key, lng) => {
   return typeof current === 'string' ? current : key;
 };
 
-// Mock i18next
-window.i18next = window.i18next || {
-  createInstance: () => ({
-    use: () => ({ use: () => ({ init: () => {} }) }),
-    t: (key) => getTranslation(key, window.localStorage.getItem('i18nextLng') || 'en'),
-    changeLanguage: (lng) => {
-      window.localStorage.setItem('i18nextLng', lng);
-      window.dispatchEvent(new Event('languageChanged'));
-    },
-    language: window.localStorage.getItem('i18nextLng') || 'en',
-  }),
-};
+// Check if the actual libraries are already loaded
+const hasI18next = typeof window.i18next !== 'undefined' && typeof window.i18next.createInstance === 'function';
+const hasReactI18next = typeof window.reactI18next !== 'undefined' && typeof window.reactI18next.useTranslation === 'function';
+const hasLanguageDetector = typeof window.i18nextBrowserLanguageDetector !== 'undefined';
 
-// Mock react-i18next
-window.reactI18next = window.reactI18next || {
-  useTranslation: () => {
-    const currentLang = window.localStorage.getItem('i18nextLng') || 'en';
-    return {
-      t: (key) => getTranslation(key, currentLang),
-      i18n: {
-        changeLanguage: (lng) => {
-          window.localStorage.setItem('i18nextLng', lng);
-          window.dispatchEvent(new Event('languageChanged'));
-          // Force re-render by dispatching a custom event
-          window.dispatchEvent(new CustomEvent('i18nextLanguageChanged', { detail: lng }));
-        },
-        language: currentLang,
+// Only create mock objects if the actual libraries are not already loaded
+if (!hasI18next) {
+  window.i18next = {
+    createInstance: () => ({
+      use: () => ({ use: () => ({ init: () => {} }) }),
+      t: (key) => getTranslation(key, window.localStorage.getItem('i18nextLng') || 'en'),
+      changeLanguage: (lng) => {
+        window.localStorage.setItem('i18nextLng', lng);
+        window.dispatchEvent(new Event('languageChanged'));
       },
-    };
-  },
-  initReactI18next: { type: 'i18next' },
-};
+      language: window.localStorage.getItem('i18nextLng') || 'en',
+    }),
+  };
+}
 
-// Mock i18next-browser-languagedetector
-window.i18nextBrowserLanguageDetector = window.i18nextBrowserLanguageDetector || {
-  type: 'languageDetector',
-};
+if (!hasReactI18next) {
+  window.reactI18next = {
+    useTranslation: () => {
+      const currentLang = window.localStorage.getItem('i18nextLng') || 'en';
+      return {
+        t: (key) => getTranslation(key, currentLang),
+        i18n: {
+          changeLanguage: (lng) => {
+            window.localStorage.setItem('i18nextLng', lng);
+            window.dispatchEvent(new Event('languageChanged'));
+            // Force re-render by dispatching a custom event
+            window.dispatchEvent(new CustomEvent('i18nextLanguageChanged', { detail: lng }));
+          },
+          language: currentLang,
+        },
+      };
+    },
+    initReactI18next: { type: 'i18next' },
+  };
+}
+
+if (!hasLanguageDetector) {
+  window.i18nextBrowserLanguageDetector = {
+    type: 'languageDetector',
+  };
+}
 
 // Export the mocks
 export const i18n = window.i18next.createInstance ? window.i18next.createInstance() : window.i18next;
