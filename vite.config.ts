@@ -19,12 +19,21 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
         }
       },
+      // Include i18next libraries in the build
       optimizeDeps: {
-        exclude: ['react-i18next', 'i18next', 'i18next-browser-languagedetector']
+        include: ['i18next', 'react-i18next', 'i18next-browser-languagedetector']
       },
       build: {
+        // Ensure JSON files (translations) are included in the build
+        assetsInlineLimit: 0,
+        // Improve chunk splitting for better caching
         rollupOptions: {
-          external: ['react-i18next', 'i18next', 'i18next-browser-languagedetector']
+          output: {
+            manualChunks: {
+              'i18n': ['i18next', 'react-i18next', 'i18next-browser-languagedetector'],
+              'translations': ['./locales/en/translation.json', './locales/vi/translation.json']
+            }
+          }
         }
       }
     };

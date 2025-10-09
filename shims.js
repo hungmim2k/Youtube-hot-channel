@@ -28,57 +28,98 @@ const getTranslation = (key, lng) => {
   return typeof current === 'string' ? current : key;
 };
 
-// Check if the actual libraries are already loaded
-const hasI18next = typeof window.i18next !== 'undefined' && typeof window.i18next.createInstance === 'function';
-const hasReactI18next = typeof window.reactI18next !== 'undefined' && typeof window.reactI18next.useTranslation === 'function';
-const hasLanguageDetector = typeof window.i18nextBrowserLanguageDetector !== 'undefined';
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
-// Only create mock objects if the actual libraries are not already loaded
-if (!hasI18next) {
-  window.i18next = {
-    createInstance: () => ({
-      use: () => ({ use: () => ({ init: () => {} }) }),
-      t: (key) => getTranslation(key, window.localStorage.getItem('i18nextLng') || 'en'),
-      changeLanguage: (lng) => {
-        window.localStorage.setItem('i18nextLng', lng);
+// Default language
+const defaultLang = 'en';
+
+// Get current language (safely)
+const getCurrentLang = () => {
+  if (isBrowser) {
+    return localStorage.getItem('i18nextLng') || defaultLang;
+  }
+  return defaultLang;
+};
+
+// Create mock i18next
+const mockI18next = {
+  createInstance: () => ({
+    use: () => ({ use: () => ({ init: () => {} }) }),
+    t: (key) => getTranslation(key, getCurrentLang()),
+    changeLanguage: (lng) => {
+      if (isBrowser) {
+        localStorage.setItem('i18nextLng', lng);
         window.dispatchEvent(new Event('languageChanged'));
-      },
-      language: window.localStorage.getItem('i18nextLng') || 'en',
-    }),
-  };
-}
+      }
+    },
+    language: getCurrentLang(),
+  }),
+};
 
-if (!hasReactI18next) {
-  window.reactI18next = {
-    useTranslation: () => {
-      const currentLang = window.localStorage.getItem('i18nextLng') || 'en';
-      return {
-        t: (key) => getTranslation(key, currentLang),
-        i18n: {
-          changeLanguage: (lng) => {
-            window.localStorage.setItem('i18nextLng', lng);
+// Create mock reactI18next
+const mockReactI18next = {
+  useTranslation: () => {
+    const currentLang = getCurrentLang();
+    return {
+      t: (key) => getTranslation(key, currentLang),
+      i18n: {
+        changeLanguage: (lng) => {
+          if (isBrowser) {
+            localStorage.setItem('i18nextLng', lng);
             window.dispatchEvent(new Event('languageChanged'));
             // Force re-render by dispatching a custom event
             window.dispatchEvent(new CustomEvent('i18nextLanguageChanged', { detail: lng }));
-          },
-          language: currentLang,
+          }
         },
-      };
-    },
-    initReactI18next: { type: 'i18next' },
-  };
+        language: currentLang,
+      },
+    };
+  },
+  initReactI18next: { type: 'i18next' },
+};
+
+// Create mock languageDetector
+const mockLanguageDetector = {
+  type: 'languageDetector',
+};
+
+// Set up browser globals if we're in a browser
+if (isBrowser) {
+  // Check if the actual libraries are already loaded
+  const hasI18next = typeof window.i18next !== 'undefined' && typeof window.i18next.createInstance === 'function';
+  const hasReactI18next = typeof window.reactI18next !== 'undefined' && typeof window.reactI18next.useTranslation === 'function';
+  const hasLanguageDetector = typeof window.i18nextBrowserLanguageDetector !== 'undefined';
+
+  // Only create mock objects if the actual libraries are not already loaded
+  if (!hasI18next) {
+    window.i18next = mockI18next;
+  }
+
+  if (!hasReactI18next) {
+    window.reactI18next = mockReactI18next;
+  }
+
+  if (!hasLanguageDetector) {
+    window.i18nextBrowserLanguageDetector = mockLanguageDetector;
+  }
 }
 
-if (!hasLanguageDetector) {
-  window.i18nextBrowserLanguageDetector = {
-    type: 'languageDetector',
-  };
-}
+// Export the mocks (safely)
+export const i18n = isBrowser && window.i18next.createInstance ? 
+  window.i18next.createInstance() : 
+  mockI18next.createInstance();
 
-// Export the mocks
-export const i18n = window.i18next.createInstance ? window.i18next.createInstance() : window.i18next;
-export const useTranslation = window.reactI18next.useTranslation;
-export const initReactI18next = window.reactI18next.initReactI18next;
-export const LanguageDetector = window.i18nextBrowserLanguageDetector;
+export const useTranslation = isBrowser && window.reactI18next ? 
+  window.reactI18next.useTranslation : 
+  mockReactI18next.useTranslation;
+
+export const initReactI18next = isBrowser && window.reactI18next ? 
+  window.reactI18next.initReactI18next : 
+  mockReactI18next.initReactI18next;
+
+export const LanguageDetector = isBrowser && window.i18nextBrowserLanguageDetector ? 
+  window.i18nextBrowserLanguageDetector : 
+  mockLanguageDetector;
 
 export default i18n;

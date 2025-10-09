@@ -10,20 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/output.css">
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://cdn.jsdelivr.net/npm/react@18.2.0/",
-    "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
-    "react-dom/": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/",
-    "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm",
-    "react-i18next": "https://cdn.jsdelivr.net/npm/react-i18next@13.5.0/+esm",
-    "i18next": "https://cdn.jsdelivr.net/npm/i18next@23.7.11/+esm",
-    "i18next-browser-languagedetector": "https://cdn.jsdelivr.net/npm/i18next-browser-languagedetector@7.2.0/+esm"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+  <!-- Import map removed to ensure i18next libraries are bundled with the application -->
+  <!-- This allows translations to work correctly on the server -->
+  <link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-hud-bg font-mono">
     <div id="root"></div>
